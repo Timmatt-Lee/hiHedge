@@ -8,8 +8,8 @@ contract Token is Owner
     string public symbol;
     uint8 public decimals = 18;
     uint public totalSupply;
-    uint public sellPrice=1;
-    uint public buyPrice=1;
+    uint public sellPrice=1 ether;
+    uint public buyPrice=1 ether;
 
     mapping (address => uint) public balanceOf;
     mapping (address => mapping (address => uint)) public allowance;
@@ -110,25 +110,26 @@ contract Token is Owner
         buyPrice = newBuyPrice;
     }
 
-    // @notice Buy tokens from contract by sending ether
-    function buy() payable public returns (uint amount)
-    {
-        amount = msg.value / buyPrice;               // calculates the amount
-        _transfer(this, msg.sender, amount);         // makes the transfers
-        return amount;
-    }
-
     /*
      * @notice Sell `amount` tokens to contract
      * @param amount amount of tokens to be sold
      */
     function sell(uint amount) public returns (uint revenue)
     {
-        revenue=amount * sellPrice;
+        revenue=amount * sellPrice/1 ether;
         require(this.balance >= revenue);                 // checks if the contract has enough ether to buy
-        _transfer(msg.sender, this, revenue/sellPrice);   // makes the transfers
+        _transfer(msg.sender, this, revenue*1 ether/sellPrice);   // makes the transfers
         msg.sender.transfer(revenue);                     // sends ether to the seller. It's important to do this last to avoid recursion attacks
         return revenue;
+    }
+
+
+    // @notice Buy tokens from contract by sending ether
+    function buy() payable public returns (uint amount)
+    {
+        amount = msg.value*1 ether / buyPrice;               // calculates the amount
+        _transfer(this, msg.sender, amount);         // makes the transfers
+        return amount;
     }
 
     /*
