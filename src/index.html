@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+    <title>Token Wallet</title>
+
+    <!-- Bootstrap -->
+    <link href="css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
+      <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+  </head>
+  <body>
+    <div id="token" class="container">
+      <div class="row">
+        <div class="col-xs-12 col-sm-8 col-sm-push-2">
+          <h1 class="text-center"><span class="name"></span></h1>
+          <hr/>
+          <br/>
+        </div>
+      </div>
+      <div id="minter_wallet" class="row">
+        <div class="col-sm-6 col-sm-push-3 col-md-8 col-md-push-2">
+          <div class="panel panel-default">
+            <div class="panel-heading">
+              <h3 class="panel-title">Minter</h3>
+            </div>
+            <div class="panel-body" >
+              <strong><span class="name"></span> Balance</strong>: <span class="balance"></span> <span class="symbol"></span><br/>
+              Ether Balance: <span class="etherBalance"></span> ether<br/>
+          </div>
+        </div>
+      </div>
+    </div>
+      <div id="user_wallet" class="row">
+        <div class="col-sm-6 col-sm-push-3 col-md-8 col-md-push-2">
+          <div class="panel panel-default">
+            <div class="panel-heading">
+              <h3 class="panel-title">My Wallet</h3>
+            </div>
+            <div class="panel-body" >
+              <strong><span class="name"></span> Balance</strong>: <span class="balance"></span> <span class="symbol"></span><br/>
+              Ether Balance: <span class="etherBalance"></span> ether<br/>
+            </div>
+            <div class="panel-body" >
+              <h4>Transfer</h4>
+              <input type="text" class="form-control" id="transferAddress" placeholder="Address" />
+              <input type="text" class="form-control" id="transferAmount" placeholder="Amount" />
+              <button class="btn btn-primary" id="transferButton" type="button">Transfer</button>
+            </div>
+            <div class="panel-body">
+              <h4>Buy</h4>
+              <input type="text" class="form-control" id="buyValue" placeholder="ether"/>
+              <button class="btn btn-primary" id="buyButton" type="button">Buy</button>
+            </div>
+            <div class="panel-body">
+              <h4>Sell</h4>
+              <input type="text" class="form-control" id="sellValue" placeholder="Amount"/>
+              <button class="btn btn-primary" id="sellButton" type="button">Sell</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+    <!-- Include all compiled plugins (below), or include individual files as needed -->
+    <script src="js/bootstrap.min.js"></script>
+    <script src="js/web3.min.js"></script>
+    <script src="js/truffle-contract.js"></script>
+    <script src="js/token.js"></script>
+    <script src="js/app.js"></script>
+  </body>
+</html>
