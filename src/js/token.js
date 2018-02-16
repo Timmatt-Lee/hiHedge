@@ -9,6 +9,8 @@ Token = {
 	minterTokenBalance: 0,
 	userEtherBalance: 0,
 	minterEtherBalance: 0,
+	sellPrice: 1,
+	buyPrice: 1,
 
 
 	init: function() {
@@ -18,14 +20,17 @@ Token = {
 	},
 
 	bindEvents: function() {
-		$(document).on('click', '#token #transferButton', Token.handleTransfer);
-		$(document).on('click', '#token #buyButton', Token.handleBuy);
-		$(document).on('click', '#token #sellButton', Token.handleSell);
+		$(document).on('click', '#token #transfer button', Token.handleTransfer);
+		$(document).on('click', '#token #buy button', Token.handleBuy);
+		$(document).on('click', '#token #sell button', Token.handleSell);
+		$(document).on('click', '#token #setBuyPrice button', Token.handleSetBuyPrice);
+		$(document).on('click', '#token #setSellPrice button', Token.handleSetSellPrice);
 	},
 
 	// 要與區塊鏈同步的資料
 	async: function() {
 		Token.getBalances();
+		Token.getPrices();
 	},
 
 	initUI: function() {
@@ -43,23 +48,57 @@ Token = {
 			Token.name = _name;
 			$('#token .name').text(Token.name);
 			Token.getBalances(); // 最後要記得呼叫動態內容
+			Token.getPrices();
 			return true;
 
-		}).catch((error) => console.log('Error: init imformations: ', error.message)).then((_isSuccuss) =>
-			console.log((_isSuccuss ? 'Succuss' : 'Fail') + ': init imformations!'));
+		}).then((_isSuccuss) =>
+			console.log((_isSuccuss ? 'Succuss' : 'Fail') + ': init imformations!')
+		).catch((error) =>
+			console.log('Error: init imformations: ', error.message));
 	},
 
 	updateUI: function() {
+		// 更新Balances
 		$('#token #user_wallet .balance').text(Token.userTokenBalance);
 		$('#token #minter_wallet .balance').text(Token.minterTokenBalance);
 		$('#user_wallet .etherBalance').text(Token.userEtherBalance);
 		$('#minter_wallet .etherBalance').text(Token.minterEtherBalance);
+
+		//更新買賣價
+		$('#token .sellPrice').text(Token.sellPrice);
+		$('#token .buyPrice').text(Token.buyPrice);
+
+		//更新設定買賣價的place holder
+		$('#token #setBuyPrice input').attr('placeholder', 'ether/' + Token.name);
+		$('#token #setSellPrice input').attr('placeholder', 'ether/' + Token.name);
 		return true;
 	},
 
+	getBalances: function() {
+		var _message = Token.name + ' & ether balances';
+		console.log('Loading: ' + _message + ' ...');
+
+		Token.contract.then(function() {
+			return Token.instance.getBalances({ from: web3.eth.defaultAccount });
+
+		}).then(function(_balances) {
+			Token.minterTokenBalance = web3.fromWei(_balances[0]);
+			Token.userTokenBalance = web3.fromWei(_balances[1]);
+			Token.minterEtherBalance = web3.fromWei(_balances[2]);
+			Token.userEtherBalance = web3.fromWei(_balances[3]);
+			return Token.updateUI();
+
+		}).then((_isUpdated) =>
+			console.log((_isUpdated ? 'Succuss: ' : 'Fail: ') + _message + ' updated!')
+
+		).catch((error) =>
+			console.log('Error: get balances: ', error.message));
+
+	},
+
 	handleTransfer: function() {
-		var _amount = $('#token #transferAmount').val();
-		var _toAddress = $('#token #transferAddress').val();
+		var _amount = $('#token #transfer input[placeholder="Amount"]').val();
+		var _toAddress = $('#token #transfer  input[placeholder="Address"]').val();
 
 		var _message = 'transfer ' + plural(_amount, Token.name) + ' to ' + _toAddress;
 		console.log('Pending: ' + _message + ' ...');
@@ -80,7 +119,7 @@ Token = {
 	},
 
 	handleBuy: function() {
-		var _buyValue = $('#token #buyValue').val();
+		var _buyValue = $('#token #buy input').val();
 		var _message = ' by ' + plural(_buyValue, 'ether');
 		var _boughtAmount;
 
@@ -103,7 +142,7 @@ Token = {
 	},
 
 	handleSell: function() {
-		var _sellAmount = $('#token #sellValue').val();
+		var _sellAmount = $('#token #sell input').val();
 		var _message = plural(_sellAmount, Token.name);
 		var _soldValue;
 
@@ -124,27 +163,69 @@ Token = {
 
 	},
 
-	getBalances: function() {
-		var _message = Token.name + ' & ether balances';
+	handleSetSellPrice: function() {
+		var _sellPrice = $('#token #setSellPrice input').val();
+		var _message = 'set sell price for ' + _sellPrice + ' ether/' + Token.name;
+
+		console.log('Pending: ' + _message + ' ...');
+
+		Token.contract.then(() => {
+			if (_sellPrice <= 0)
+				throw { message: 'price should more than 0' };
+			return Token.instance.setSellPrice(_sellPrice, { from: web3.eth.defaultAccount });
+
+		}).then(() => {
+			alert('Success: ' + _message + ' !');
+			return Token.getPrices();
+
+		}).catch((error) =>
+			console.log('Error: set sell price: ', error.message));
+
+	},
+
+	handleSetBuyPrice: function() {
+		var _buyPrice = $('#token #setBuyPrice input').val();
+		var _message = 'set buy price for ' + _buyPrice + ' ether/' + Token.name;
+
+		console.log('Pending: ' + _message + ' ...');
+
+		Token.contract.then(() => {
+			if (_buyPrice <= 0)
+				throw { message: 'price should more than 0' };
+			return Token.instance.setBuyPrice(_buyPrice, { from: web3.eth.defaultAccount });
+
+		}).then(() => {
+			alert('Success: ' + _message + ' !');
+			return Token.getPrices();
+
+		}).catch((error) =>
+			console.log('Error: set buy price: ', error.message));
+
+	},
+
+	getPrices: function() {
+		var _message = 'sell & buy prices';
 		console.log('Loading: ' + _message + ' ...');
 
 		Token.contract.then(function() {
-			return Token.instance.getBalances({ from: web3.eth.defaultAccount });
+			return Token.instance.sellPrice();
 
-		}).then(function(_balances) {
-			Token.minterTokenBalance = web3.fromWei(_balances[0]);
-			Token.userTokenBalance = web3.fromWei(_balances[1]);
-			Token.minterEtherBalance = web3.fromWei(_balances[2]);
-			Token.userEtherBalance = web3.fromWei(_balances[3]);
+		}).then(function(_sellPrice) {
+			Token.sellPrice = _sellPrice;
+			return Token.instance.buyPrice();
+
+		}).then(function(_buyPrice) {
+			Token.buyPrice = _buyPrice;
 			return Token.updateUI();
 
-		}).then((_isUpdateBalance) =>
-			console.log((_isUpdateBalance ? 'Succuss: ' : 'Fail: ') + _message + ' updated!')
+		}).then((_isUpdated) =>
+			console.log((_isUpdated ? 'Succuss: ' : 'Fail: ') + _message + ' updated!')
 
 		).catch((error) =>
-			console.log('Error: getBalances: ', error.message));
+			console.log('Error: get prices: ', error.message));
 
-	}
+	},
+
 
 };
 

@@ -96,7 +96,17 @@ contract Token is Owner
      */
     function setPrices(uint newSellPrice, uint newBuyPrice) onlyOwner public
     {
+        setSellPrice(newSellPrice);
+        setBuyPrice(newBuyPrice);
+    }
+
+    function setSellPrice(uint newSellPrice) onlyOwner public
+    {
         sellPrice = newSellPrice;
+    }
+
+    function setBuyPrice(uint newBuyPrice) onlyOwner public
+    {
         buyPrice = newBuyPrice;
     }
 
