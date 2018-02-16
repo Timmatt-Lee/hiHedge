@@ -25,6 +25,7 @@ Token = {
 		$(document).on('click', '#token #sell button', Token.sell);
 		$(document).on('click', '#token #setBuyPrice button', Token.setBuyPrice);
 		$(document).on('click', '#token #setSellPrice button', Token.setSellPrice);
+		$(document).on('click', '#token #mint button', Token.mint);
 	},
 
 	// 要與區塊鏈同步的資料
@@ -58,11 +59,13 @@ Token = {
 				// 更新設定買賣價的place holder
 				$('#token #setPrices input').attr('placeholder', 'ether/' + Token.name);
 			} else {
-				// 將設定買賣價的按鈕封鎖
-				$('#token #setPrices button').prop('disabled', true);
-				// 禁止買賣
-				$('#token #setPrices input').prop('disabled', true);
+				// 設定買賣價封鎖
+				$('#token #setPrices *').prop('disabled', true);
 				$('#token #setPrices input').attr('placeholder', 'Sorry, you have no permission');
+				// 發幣封鎖
+				$('#token #mint *').prop('disabled', true);
+				$('#token #mint input').attr('placeholder', 'Sorry, you have no permission');
+
 			}
 
 			// 更新動態內容
@@ -114,13 +117,18 @@ Token = {
 	},
 
 	transfer: function() {
-		var _amount = $('#token #transfer input[placeholder="Amount"]').val();
 		var _toAddress = $('#token #transfer  input[placeholder="Address"]').val();
+		var _amount = $('#token #transfer input[placeholder="Amount"]').val();
 
 		var _message = 'transfer ' + plural(_amount, Token.name) + ' to ' + _toAddress;
 		console.log('Pending: ' + _message + ' ...');
 
 		Token.contract.then(() => {
+			// 如果沒在前端攔截，進到合約裡面它會自動把負數變成uint，然後就爆了
+			if (_amount <= 0) {
+				alert('Amount should more than 0');
+				throw { message: 'amount should more than 0' };
+			}
 			// 用預設帳號進行token轉帳
 			return Token.instance.transfer(_toAddress, web3.toWei(_amount), { from: web3.eth.defaultAccount });
 
@@ -143,6 +151,11 @@ Token = {
 		console.log('Pending: sell ' + _message + ' ...');
 
 		Token.contract.then(() => {
+			// 如果沒在前端攔截，進到合約裡面它會自動把負數變成uint，然後就爆了
+			if (_sellAmount <= 0) {
+				alert('Amount should more than 0');
+				throw { message: 'amount should more than 0' };
+			}
 			return Token.instance.sell.call(web3.toWei(_sellAmount));
 
 		}).then((result) => {
@@ -165,6 +178,11 @@ Token = {
 		console.log('Pending: buy ' + Token.name + _message + ' ...');
 
 		Token.contract.then(() => {
+			// 如果沒在前端攔截，進到合約裡面它會自動把負數變成uint，然後就爆了
+			if (_buyValue <= 0) {
+				alert('Price should more than 0');
+				throw { message: 'price should more than 0' };
+			}
 			// 換算成ether
 			return Token.instance.buy.call({ value: web3.toWei(_buyValue) });
 
@@ -187,8 +205,11 @@ Token = {
 		console.log('Pending: ' + _message + ' ...');
 
 		Token.contract.then(() => {
-			if (_sellPrice <= 0)
+			// 如果沒在前端攔截，進到合約裡面它會自動把負數變成uint，然後就爆了
+			if (_sellPrice <= 0) {
+				alert('Price should more than 0');
 				throw { message: 'price should more than 0' };
+			}
 			return Token.instance.setSellPrice(web3.toWei(_sellPrice), { from: web3.eth.defaultAccount });
 
 		}).then(() => {
@@ -207,8 +228,11 @@ Token = {
 		console.log('Pending: ' + _message + ' ...');
 
 		Token.contract.then(() => {
-			if (_buyPrice <= 0)
+			// 如果沒在前端攔截，進到合約裡面它會自動把負數變成uint，然後就爆了
+			if (_buyPrice <= 0) {
+				alert('Price should more than 0');
 				throw { message: 'price should more than 0' };
+			}
 			return Token.instance.setBuyPrice(web3.toWei(_buyPrice), { from: web3.eth.defaultAccount });
 
 		}).then(() => {
@@ -241,6 +265,37 @@ Token = {
 		).catch((error) =>
 			console.log('Error: get prices: ', error.message));
 
+	},
+
+	mint: function() {
+		var _toAddress = $('#token #mint  input[placeholder="Address"]').val();
+		var _amount = $('#token #mint input[placeholder="Amount"]').val();
+
+		// 如果留空則設為預設使用者
+		if (_toAddress == 0)
+			_toAddress = web3.eth.defaultAccount;
+
+		var _message = 'mint ' + plural(_amount, Token.name) + ' to ' + _toAddress;
+		console.log('Pending: ' + _message + ' ...');
+
+		Token.contract.then(() => {
+			// 如果沒在前端攔截，進到合約裡面它會自動把負數變成uint，然後就爆了
+			if (_amount <= 0) {
+				alert('Amount should more than 0');
+				throw { message: 'amount should more than 0' };
+			}
+			// 用預設帳號發幣（合約裡是認證是否為onlyOwner會用到sender）
+			return Token.instance.mint(_toAddress, web3.toWei(_amount), { from: web3.eth.defaultAccount });
+
+		}).then(() => {
+			Token.getBalances();
+			return true;
+
+		}).then((_isSuccuss) =>
+			alert((_isSuccuss ? 'Succuss ' : 'Fail ') + _message + '!')
+
+		).catch((error) =>
+			console.log('Error: mint: ', error.message));
 	},
 
 

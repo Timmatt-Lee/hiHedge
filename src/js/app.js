@@ -51,7 +51,10 @@ App = {
 				return;
 			}
 			console.log('Block updated!');
-			setTimeout(App.asyncList, 3000); // 延遲幾秒後再訪問區塊比較不會漏抓資料
+
+			for (i = 0; i < 5; i++) {
+				setTimeout(App.asyncList, 1000 * i); // 延遲幾秒後再多次訪問區塊比較不會漏抓資料
+			}
 		});
 	},
 

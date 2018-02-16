@@ -81,8 +81,9 @@ contract Token is Owner
      * @param target Address to receive the tokens
      * @param mintedAmount the amount of tokens it will receive
      */
-    function mintToken(address target, uint mintedAmount) onlyOwner public
+    function mint(address target, uint mintedAmount) onlyOwner public
     {
+        require(target != 0x0);          // Prevent mint in vein
         balanceOf[target] += mintedAmount;
         totalSupply += mintedAmount;
         Transfer(0, this, mintedAmount);
