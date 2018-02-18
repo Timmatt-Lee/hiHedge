@@ -8,8 +8,8 @@ contract Token is Owner
     string public symbol;
     uint8 public decimals = 18;
     uint public totalSupply;
-    uint public sellPrice=1 ether;
-    uint public buyPrice=1 ether;
+    uint public sellPrice = 1 ether;
+    uint public buyPrice = 1 ether;
 
     mapping (address => uint) public balanceOf;
     mapping (address => mapping (address => uint)) public allowance;
@@ -24,13 +24,13 @@ contract Token is Owner
      *
      * Initializes contract with initial supply tokens to the creator of the contract
      */
-    function Token(uint initialSupply,string tokenName,string tokenSymbol) public payable
+    function Token(uint _supply,string _name,string _symbol) public payable
     {
-        totalSupply = initialSupply * 10 ** uint(decimals); // Update total supply with the decimal amount
-        balanceOf[msg.sender] = totalSupply/10;             // Give the creator 1/10 initial tokens
-        balanceOf[this] = totalSupply*9/10;                 // Minter has the rest
-        name = tokenName;                                   // Set the name for display purposes
-        symbol = tokenSymbol;                               // Set the symbol for display purposes
+        totalSupply = _supply * 10 ** uint(decimals); // Update total supply with the decimal amount
+        balanceOf[msg.sender] = totalSupply/10;       // Give the creator 1/10 initial tokens
+        balanceOf[this] = totalSupply*9/10;           // Minter has the rest
+        name = _name;                                 // Set the name for display purposes
+        symbol = _symbol;                             // Set the symbol for display purposes
     }
 
     // return user and minter's ether & token balances
@@ -43,81 +43,83 @@ contract Token is Owner
     /*
      * Transfer tokens
      *
-     * Send `_value` tokens to `_to` from your account
+     * Send `_amount` tokens to `_to` from your account
      *
      * @param _to The address of the recipient
-     * @param _value the amount to send
+     * @param _amount the amount to send
      */
-    function transfer(address _to, uint _value) public
+    function transfer(address _to, uint _amount) public
     {
-        _transfer(msg.sender, _to, _value);
+        _transfer(msg.sender, _to, _amount);
     }
 
 
     /*
      * Internal transfer, only can be called by this contract
      */
-    function _transfer(address _from, address _to, uint _value) internal
+    function _transfer(address _from, address _to, uint _amount) internal
     {
         // Prevent transfer to 0x0 address. Use burn() instead
         require(_to != 0x0);
         // Check if the sender has enough
-        require(balanceOf[_from] >= _value);
+        require(balanceOf[_from] >= _amount);
         // Check for overflows
-        require(balanceOf[_to] + _value > balanceOf[_to]);
+        require(balanceOf[_to] + _amount > balanceOf[_to]);
+        // Check whether 2 address is frozen
+        require(!frozenAccount[_from] && !frozenAccount[_to]);
         // Save this for an assertion in the future
         uint previousBalances = balanceOf[_from] + balanceOf[_to];
         // Subtract from the sender
-        balanceOf[_from] -= _value;
+        balanceOf[_from] -= _amount;
         // Add the same to the recipient
-        balanceOf[_to] += _value;
-        Transfer(_from, _to, _value);
+        balanceOf[_to] += _amount;
+        Transfer(_from, _to, _amount);
         // Asserts are used to use static analysis to find bugs in your code. They should never fail
         assert(balanceOf[_from] + balanceOf[_to] == previousBalances);
     }
 
     /*
-     * @notice Create `mintedAmount` tokens and send it to `target`
-     * @param target Address to receive the tokens
-     * @param mintedAmount the amount of tokens it will receive
+     * @notice Create `_amount` tokens and send it to `_target`
+     * @param _target Address to receive the tokens
+     * @param _amount the amount of tokens it will receive
      */
-    function mint(address target, uint mintedAmount) onlyOwner public
+    function mint(address _target, uint _amount) onlyOwner public
     {
-        require(target != 0x0);          // Prevent mint in vein
-        balanceOf[target] += mintedAmount;
-        totalSupply += mintedAmount;
-        Transfer(0, this, mintedAmount);
-        Transfer(this, target, mintedAmount);
+        require(_target != 0x0);          // Prevent mint in vein
+        balanceOf[_target] += _amount;
+        totalSupply += _amount;
+        Transfer(0, this, _amount);
+        Transfer(this, _target, _amount);
     }
 
     /*
      * @notice Allow users to buy tokens for `newBuyPrice` eth and sell tokens for `newSellPrice` eth
-     * @param newSellPrice Price the users can sell to the contract
-     * @param newBuyPrice Price users can buy from the contract
+     * @param _sellPrice Price the users can sell to the contract
+     * @param _buyPrice Price users can buy from the contract
      */
-    function setPrices(uint newSellPrice, uint newBuyPrice) onlyOwner public
+    function setPrices(uint _sellPrice, uint _buyPrice) onlyOwner public
     {
-        setSellPrice(newSellPrice);
-        setBuyPrice(newBuyPrice);
+        setSellPrice(_sellPrice);
+        setBuyPrice(_buyPrice);
     }
 
-    function setSellPrice(uint newSellPrice) onlyOwner public
+    function setSellPrice(uint _sellPrice) onlyOwner public
     {
-        sellPrice = newSellPrice;
+        sellPrice = _sellPrice;
     }
 
-    function setBuyPrice(uint newBuyPrice) onlyOwner public
+    function setBuyPrice(uint _buyPrice) onlyOwner public
     {
-        buyPrice = newBuyPrice;
+        buyPrice = _buyPrice;
     }
 
     /*
      * @notice Sell `amount` tokens to contract
      * @param amount amount of tokens to be sold
      */
-    function sell(uint amount) public returns (uint revenue)
+    function sell(uint _amount) public returns (uint revenue)
     {
-        revenue=amount * sellPrice/1 ether;
+        revenue=_amount * sellPrice/1 ether;
         require(this.balance >= revenue);                 // checks if the contract has enough ether to buy
         _transfer(msg.sender, this, revenue*1 ether/sellPrice);   // makes the transfers
         msg.sender.transfer(revenue);                     // sends ether to the seller. It's important to do this last to avoid recursion attacks
@@ -136,77 +138,86 @@ contract Token is Owner
     /*
      * Transfer tokens from other address
      *
-     * Send `_value` tokens to `_to` in behalf of `_from`
+     * Send `_amount` tokens to `_to` in behalf of `_from`
      *
      * @param _from The address of the sender
      * @param _to The address of the recipient
-     * @param _value the amount to send
+     * @param _amount the amount to send
      */
-    function transferFrom(address _from, address _to, uint _value) public returns (bool success)
+    function transferFrom(address _from, address _to, uint _amount) public returns (bool success)
     {
-        require(_value <= allowance[_from][msg.sender]);     // Check allowance
-        allowance[_from][msg.sender] -= _value;
-        _transfer(_from, _to, _value);
+        require(_amount <= allowance[_from][msg.sender]);     // Check allowance
+        allowance[_from][msg.sender] -= _amount;
+        _transfer(_from, _to, _amount);
         return true;
     }
 
     /*
      * Set allowance for other address
      *
-     * Allows `_spender` to spend no more than `_value` tokens in your behalf
+     * Allows `_spender` to spend no more than `_amount` tokens in your behalf
      *
      * @param _spender The address authorized to spend
-     * @param _value the max amount they can spend
+     * @param _amount the max amount they can spend
      */
-    function approve(address _spender, uint _value) public returns (bool success)
+    function approve(address _spender, uint _amount) public returns (bool success)
     {
-        allowance[msg.sender][_spender] = _value;
+        allowance[msg.sender][_spender] = _amount;
         return true;
     }
 
     /*
-     * @notice `freeze? Prevent | Allow` `target` from sending & receiving tokens
-     * @param target Address to be frozen
+     * @notice toggle allow/prevent `_target` from sending & receiving tokens
+     * @param _target Address to be frozen
+     */
+    function toggleFrozen(address _target) onlyOwner public
+    {
+        setFrozen(_target, !frozenAccount[_target]);
+    }
+
+    /*
+     * @notice `_isFrozen? Prevent | Allow` `_target` from sending & receiving tokens
+     * @param _target Address to be frozen
      * @param freeze either to freeze it or not
      */
-    function freezeAccount(address target, bool freeze) onlyOwner public
+    function setFrozen(address _target, bool _isFrozen) onlyOwner public
     {
-        frozenAccount[target] = freeze;
-        FrozenFunds(target, freeze);
+        frozenAccount[_target] = _isFrozen;
+        FrozenFunds(_target, _isFrozen);
     }
 
     /*
      * Destroy tokens
      *
-     * Remove `_value` tokens from the system irreversibly
+     * Remove `_amount` tokens from the system irreversibly
      *
-     * @param _value the amount of money to burn
+     * @param _amount the amount of money to burn
      */
-    function burn(uint _value) public returns (bool success)
+    function burn(uint _amount) public returns (bool success)
     {
-        require(balanceOf[msg.sender] >= _value);   // Check if the sender has enough
-        balanceOf[msg.sender] -= _value;            // Subtract from the sender
-        totalSupply -= _value;                      // Updates totalSupply
-        Burn(msg.sender, _value);
+        require(balanceOf[msg.sender] >= _amount);   // Check if the sender has enough
+        balanceOf[msg.sender] -= _amount;            // Subtract from the sender
+        totalSupply -= _amount;                      // Updates totalSupply
+        Burn(msg.sender, _amount);
         return true;
     }
 
     /*
      * Destroy tokens from other account
      *
-     * Remove `_value` tokens from the system irreversibly on behalf of `_from`.
+     * Remove `_amount` tokens from the system irreversibly on behalf of `_from`.
      *
      * @param _from the address of the sender
-     * @param _value the amount of money to burn
+     * @param _amount the amount of money to burn
      */
-    function burnFrom(address _from, uint _value) public returns (bool success)
+    function burnFrom(address _from, uint _amount) public returns (bool success)
     {
-        require(balanceOf[_from] >= _value);                // Check if the targeted balance is enough
-        require(_value <= allowance[_from][msg.sender]);    // Check allowance
-        balanceOf[_from] -= _value;                         // Subtract from the targeted balance
-        allowance[_from][msg.sender] -= _value;             // Subtract from the sender's allowance
-        totalSupply -= _value;                              // Update totalSupply
-        Burn(_from, _value);
+        require(balanceOf[_from] >= _amount);                // Check if the targeted balance is enough
+        require(_amount <= allowance[_from][msg.sender]);    // Check allowance
+        balanceOf[_from] -= _amount;                         // Subtract from the targeted balance
+        allowance[_from][msg.sender] -= _amount;             // Subtract from the sender's allowance
+        totalSupply -= _amount;                              // Update totalSupply
+        Burn(_from, _amount);
         return true;
     }
 }

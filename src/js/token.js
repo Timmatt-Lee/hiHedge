@@ -11,12 +11,14 @@ Token = {
 	minterEtherBalance: 0,
 	sellPrice: 1,
 	buyPrice: 1,
+	isFrozen: false,
 
 
 	init: function() {
-		// 初始化UI
-		Token.initUI();
-		return Token.bindEvents(); // 監聽UI，綁定事件
+		Token.initUI(); // 初始化UI
+		Token.bindEvents(); // 監聽UI，綁定事件
+		Token.listeners(); // 監聽事件
+		return true;
 	},
 
 	bindEvents: function() {
@@ -26,12 +28,22 @@ Token = {
 		$(document).on('click', '#token #setBuyPrice button', Token.setBuyPrice);
 		$(document).on('click', '#token #setSellPrice button', Token.setSellPrice);
 		$(document).on('click', '#token #mint button', Token.mint);
+		$(document).on('click', '#token #freeze input+button', Token.getFrozen);
+		$(document).on('click', '#token #freeze .btn-group button', Token.toggleFrozen);
+	},
+
+	listeners: function() {
+		$('#token #freeze input').on('keydown', function() { $('#token #freeze .btn-group').hide(); });
 	},
 
 	// 要與區塊鏈同步的資料
 	async: function() {
+		// 取得ether、token的餘額
 		Token.getBalances();
+		// 取得現在token比ether的買賣價
 		Token.getPrices();
+		// 取得此帳戶有沒有被凍結
+		Token.getThisFrozen();
 	},
 
 	initUI: function() {
@@ -53,20 +65,13 @@ Token = {
 			return Token.instance.owner();
 
 		}).then((_owner) => {
+			// 設定買賣價的place holder
+			$('#token #setPrices input').attr('placeholder', 'ether/' + Token.name);
 			Token.owner = _owner;
 			// 針對是否為owner去禁止或開放一些UI
-			if (web3.eth.defaultAccount == Token.owner) {
-				// 更新設定買賣價的place holder
-				$('#token #setPrices input').attr('placeholder', 'ether/' + Token.name);
-			} else {
-				// 設定買賣價封鎖
-				$('#token #setPrices *').prop('disabled', true);
-				$('#token #setPrices input').attr('placeholder', 'Sorry, you have no permission');
-				// 發幣封鎖
-				$('#token #mint *').prop('disabled', true);
-				$('#token #mint input').attr('placeholder', 'Sorry, you have no permission');
-
-			}
+			var _isOwner = web3.eth.defaultAccount == Token.owner;
+			$(multiSelector('#token ', ['#setPrices', '#mint', '#freeze'], ' [data-toggle="tooltip"]')).tooltip(_isOwner ? 'disable' : 'enable');
+			$(multiSelector('#token ', ['#setPrices', '#mint', '#freeze'], ' *')).prop('disabled', !_isOwner);
 
 			// 更新動態內容
 			Token.getBalances();
@@ -91,6 +96,14 @@ Token = {
 		$('#token .sellPrice').text(Token.sellPrice);
 		$('#token .buyPrice').text(Token.buyPrice);
 
+		// 若帳戶被凍結
+		$(multiSelector('#token ', ['#transfer', '#sell', '#buy'], ' [data-toggle="tooltip"]')).tooltip(Token.isFrozen ? 'enable' : 'disable');
+		$(multiSelector('#token ', ['#transfer', '#sell', '#buy'], ' *')).prop('disabled', Token.isFrozen);
+		if ($('#token #freeze input').val() == 0) { // 為零代表是抓此使用者
+			$('#token #freeze .btn-group button:first').prop('disabled', Token.isFrozen);
+			$('#token #freeze .btn-group button:last').prop('disabled', !Token.isFrozen);
+		}
+
 		return true;
 	},
 
@@ -99,7 +112,7 @@ Token = {
 		console.log('Loading: ' + _message + ' ...');
 
 		Token.contract.then(function() {
-			return Token.instance.getBalances({ from: web3.eth.defaultAccount });
+			return Token.instance.getBalances();
 
 		}).then(function(_balances) {
 			Token.minterTokenBalance = web3.fromWei(_balances[0]);
@@ -130,7 +143,7 @@ Token = {
 				throw { message: 'amount should more than 0' };
 			}
 			// 用預設帳號進行token轉帳
-			return Token.instance.transfer(_toAddress, web3.toWei(_amount), { from: web3.eth.defaultAccount });
+			return Token.instance.transfer(_toAddress, web3.toWei(_amount));
 
 		}).then(() => {
 			Token.getBalances();
@@ -160,7 +173,7 @@ Token = {
 
 		}).then((result) => {
 			_soldValue = result;
-			return Token.instance.sell(web3.toWei(_sellAmount), { from: web3.eth.defaultAccount });
+			return Token.instance.sell(web3.toWei(_sellAmount));
 
 		}).then(() =>
 			alert('Success: sell ' + _message + ' for ' + plural(web3.fromWei(_soldValue), 'ether') + '!')
@@ -188,7 +201,7 @@ Token = {
 
 		}).then((result) => {
 			_boughtAmount = result;
-			return Token.instance.buy({ from: web3.eth.defaultAccount, value: web3.toWei(_buyValue) });
+			return Token.instance.buy({ value: web3.toWei(_buyValue) });
 
 		}).then(() =>
 			alert('Success: buy ' + plural(web3.fromWei(_boughtAmount), Token.name) + _message + '!')
@@ -210,7 +223,7 @@ Token = {
 				alert('Price should more than 0');
 				throw { message: 'price should more than 0' };
 			}
-			return Token.instance.setSellPrice(web3.toWei(_sellPrice), { from: web3.eth.defaultAccount });
+			return Token.instance.setSellPrice(web3.toWei(_sellPrice));
 
 		}).then(() => {
 			alert('Success: ' + _message + ' !');
@@ -233,7 +246,7 @@ Token = {
 				alert('Price should more than 0');
 				throw { message: 'price should more than 0' };
 			}
-			return Token.instance.setBuyPrice(web3.toWei(_buyPrice), { from: web3.eth.defaultAccount });
+			return Token.instance.setBuyPrice(web3.toWei(_buyPrice));
 
 		}).then(() => {
 			alert('Success: ' + _message + ' !');
@@ -284,8 +297,8 @@ Token = {
 				alert('Amount should more than 0');
 				throw { message: 'amount should more than 0' };
 			}
-			// 用預設帳號發幣（合約裡是認證是否為onlyOwner會用到sender）
-			return Token.instance.mint(_toAddress, web3.toWei(_amount), { from: web3.eth.defaultAccount });
+			// 用預設帳號發幣
+			return Token.instance.mint(_toAddress, web3.toWei(_amount));
 
 		}).then(() => {
 			Token.getBalances();
@@ -298,6 +311,74 @@ Token = {
 			console.log('Error: mint: ', error.message));
 	},
 
+	getFrozen: function() {
+		var _address = $('#token #freeze input').val();
+		var _isFrozen;
+
+		// 如果留空則設為預設使用者
+		if (_address == 0)
+			_address = web3.eth.defaultAccount;
+
+		console.log('Loading: ' + _address + ' got frozen or not...');
+
+		Token.contract.then(() => {
+			return Token.instance.frozenAccount(_address);
+
+		}).then((result) => {
+			_isFrozen = result;
+
+			$('#token #freeze .btn-group').show();
+			// 針對帳號凍結訊息顯示按鈕
+			$('#token #freeze .btn-group button:first').prop('disabled', _isFrozen);
+			$('#token #freeze .btn-group button:last').prop('disabled', !_isFrozen);
+
+			return true;
+
+		}).then((_isSuccuss) =>
+			console.log((_isSuccuss ? 'Succuss: ' : 'Fail: ') + _address + (_isFrozen ? ' is' : ' is NOT') + ' frozen !')
+
+		).catch((error) =>
+			console.log('Error: get frozen information: ', error.message));
+	},
+
+	toggleFrozen: function() {
+		var _address = $('#token #freeze input').val();
+
+		// 如果留空則設為預設使用者
+		if (_address == 0)
+			_address = web3.eth.defaultAccount;
+
+		console.log('Pending: toggle frozen state of ' + _address + ' ...');
+
+		Token.contract.then(() => {
+			return Token.instance.toggleFrozen(_address);
+
+		}).then(() =>
+			console.log('Success: toggle frozen state of ' + _address + ' !')
+
+		).catch((error) =>
+			console.log('Error: toggle frozen: ', error.message));;
+
+	},
+
+	getThisFrozen: function() {
+		var _message = 'get this account\'s frozen information';
+		console.log('Loading: ' + _message + ' ...');
+
+		Token.contract.then(() => {
+			return Token.instance.frozenAccount(web3.eth.defaultAccount);
+
+		}).then((_isFrozen) => {
+			Token.isFrozen = _isFrozen;
+			return Token.updateUI();
+
+		}).then((_isUpdated) =>
+			console.log((_isUpdated ? 'Succuss: ' : 'Fail: ') + _message + ' updated!')
+
+		).catch((error) =>
+			console.log('Error: get this forzen: ', error.message));
+
+	},
 
 };
 
@@ -305,4 +386,15 @@ Token = {
 // 回傳要不要加s
 function plural(value, str) {
 	return value + ' ' + str + (value > 1 ? 's' : '');
+};
+
+// 更方便的填入有繼承關係的選擇器
+function multiSelector(preStr, arr, postStr) {
+	var result = '';
+	for (i in arr) {
+		if (i > 0) // 第一項之後就需要加','
+			result += ','
+		result += (preStr + arr[i] + postStr);
+	}
+	return result;
 };
