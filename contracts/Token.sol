@@ -1,9 +1,13 @@
 pragma solidity ^0.4.18;
 
 import "./Owner.sol";
+import "./lib/iterableMapping.sol";
 
 contract Token is Owner
 {
+    using iterableMapping for iterableMapping.itMap;
+    using iterable2DMapping for iterable2DMapping.it2DMap;
+    
     string public name;
     string public symbol;
     uint8 public decimals = 18;
@@ -12,7 +16,7 @@ contract Token is Owner
     uint public buyPrice = 1 ether;
 
     mapping (address => uint) public balanceOf;
-    mapping (address => mapping (address => uint)) public allowance;
+    iterable2DMapping.it2DMap allowance;
     mapping (address => bool) public frozenAccount;
 
     event FrozenFunds(address target, bool frozen);
@@ -39,7 +43,6 @@ contract Token is Owner
       return (balanceOf[this],balanceOf[msg.sender],this.balance,msg.sender.balance);
     }
 
-
     /*
      * Transfer tokens
      *
@@ -52,7 +55,6 @@ contract Token is Owner
     {
         _transfer(msg.sender, _to, _amount);
     }
-
 
     /*
      * Internal transfer, only can be called by this contract
@@ -90,6 +92,22 @@ contract Token is Owner
         totalSupply += _amount;
         Transfer(0, this, _amount);
         Transfer(this, _target, _amount);
+    }
+    
+    /*
+     * Destroy tokens
+     *
+     * Remove `_amount` tokens from the system irreversibly
+     *
+     * @param _amount the amount of money to burn
+     */
+    function burn(uint _amount) public returns (bool success)
+    {
+        require(balanceOf[msg.sender] >= _amount);   // Check if the sender has enough
+        balanceOf[msg.sender] -= _amount;            // Subtract from the sender
+        totalSupply -= _amount;                      // Updates totalSupply
+        Burn(msg.sender, _amount);
+        return true;
     }
 
     /*
@@ -136,37 +154,6 @@ contract Token is Owner
     }
 
     /*
-     * Transfer tokens from other address
-     *
-     * Send `_amount` tokens to `_to` in behalf of `_from`
-     *
-     * @param _from The address of the sender
-     * @param _to The address of the recipient
-     * @param _amount the amount to send
-     */
-    function transferFrom(address _from, address _to, uint _amount) public returns (bool success)
-    {
-        require(_amount <= allowance[_from][msg.sender]);     // Check allowance
-        allowance[_from][msg.sender] -= _amount;
-        _transfer(_from, _to, _amount);
-        return true;
-    }
-
-    /*
-     * Set allowance for other address
-     *
-     * Allows `_spender` to spend no more than `_amount` tokens in your behalf
-     *
-     * @param _spender The address authorized to spend
-     * @param _amount the max amount they can spend
-     */
-    function approve(address _spender, uint _amount) public returns (bool success)
-    {
-        allowance[msg.sender][_spender] = _amount;
-        return true;
-    }
-
-    /*
      * @notice toggle allow/prevent `_target` from sending & receiving tokens
      * @param _target Address to be frozen
      */
@@ -187,18 +174,56 @@ contract Token is Owner
     }
 
     /*
-     * Destroy tokens
+     * Set allowance for other address
      *
-     * Remove `_amount` tokens from the system irreversibly
+     * Allows `_spender` to spend no more than `_amount` tokens in your behalf
      *
-     * @param _amount the amount of money to burn
+     * @param _spender The address authorized to spend
+     * @param _amount the max amount they can spend
      */
-    function burn(uint _amount) public returns (bool success)
+    function approve(address _spender, uint _amount) public returns (bool success)
     {
-        require(balanceOf[msg.sender] >= _amount);   // Check if the sender has enough
-        balanceOf[msg.sender] -= _amount;            // Subtract from the sender
-        totalSupply -= _amount;                      // Updates totalSupply
-        Burn(msg.sender, _amount);
+        allowance.insert(msg.sender,_spender, _amount);
+        return true;
+    }
+    
+    /*
+     * get every allowance and addresses you have approved
+     *
+     * @return account The addresses who you have authorized your tokens to
+     * @return value The allowance amount for account has the exact same index
+     */
+    function getMyAllowance() public view returns (address[] account,uint[] value)
+    {
+        account = allowance.data[msg.sender].keyIndex;
+        value = allowance.data[msg.sender].traverse();
+    }
+    
+    /*
+     * get every allowance and addresses who have approved you
+     *
+     * @return account The addresses authorized you their tokens
+     * @return value The allowance amount for account has the exact same index
+     */
+    function getForMeAllowance() public view returns (address[] account,uint[] value)
+    {
+        (account,value) =  allowance.traverse_outward(msg.sender);
+    }
+    
+    /*
+     * Transfer tokens from other address
+     *
+     * Send `_amount` tokens to `_to` in behalf of `_from`
+     *
+     * @param _from The address of the sender
+     * @param _to The address of the recipient
+     * @param _amount the amount to send
+     */
+    function transferFrom(address _from, address _to, uint _amount) public returns (bool success)
+    {
+        require(_amount <= allowance.data[_from].data[_to]);     // Check allowance
+        allowance.data[_from].modify(_to, -_amount);             // Modify the referenced value
+        _transfer(_from, _to, _amount);
         return true;
     }
 
@@ -212,11 +237,11 @@ contract Token is Owner
      */
     function burnFrom(address _from, uint _amount) public returns (bool success)
     {
-        require(balanceOf[_from] >= _amount);                // Check if the targeted balance is enough
-        require(_amount <= allowance[_from][msg.sender]);    // Check allowance
-        balanceOf[_from] -= _amount;                         // Subtract from the targeted balance
-        allowance[_from][msg.sender] -= _amount;             // Subtract from the sender's allowance
-        totalSupply -= _amount;                              // Update totalSupply
+        require(balanceOf[_from] >= _amount);                       // Check if the targeted balance is enough
+        require(_amount <= allowance.data[_from].data[msg.sender]); // Check allowance
+        balanceOf[_from] -= _amount;                                // Subtract from the targeted balance
+        allowance.data[_from].modify(msg.sender, -_amount);         // Modify the referenced value
+        totalSupply -= _amount;                                     // Update totalSupply
         Burn(_from, _amount);
         return true;
     }
