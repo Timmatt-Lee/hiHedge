@@ -1,7 +1,6 @@
 App = {
 	web3Provider: null,
 	contracts: {},
-	web3: null,
 
 	init: function() {
 		return App.initWeb3();
@@ -10,15 +9,13 @@ App = {
 	initWeb3: function() {
 		// Initialize web3 and set the provider to the testRPC.
 		if (typeof web3 !== 'undefined') {
+			// MetaMisk would inject web3
 			App.web3Provider = web3.currentProvider;
-			// 唯有這樣寫filter.watch才能正確被監聽
-			//App.web3Provider = new Web3.providers.HttpProvider("http://localhost:8545")
-			web3 = new Web3(new Web3.providers.HttpProvider("http://localhost:8545"));
 		} else {
 			// set the provider you want from Web3.providers
-			App.web3Provider = new Web3.providers.HttpProvider('http://127.0.0.1:9545');
-			web3 = new Web3(App.web3Provider);
+			App.web3Provider = new Web3.providers.HttpProvider('http://localhost:8545');
 		}
+		web3 = new Web3(App.web3Provider);
 
 		return App.initContract();
 	},
@@ -29,7 +26,7 @@ App = {
 			var TokenArtifact = data;
 			App.contracts.Token = TruffleContract(TokenArtifact);
 			// Set the provider for our contract.
-			App.contracts.Token.setProvider(App.web3Provider);
+			App.contracts.Token.setProvider(web3.currentProvider);
 
 			// 將已部屬的合約和其實例加載到Token的成員變數裡
 			Token.contract = App.contracts.Token.deployed(); // deployed()回傳一個Promise物件
@@ -47,7 +44,7 @@ App = {
 		// 監聽最新的區塊
 		web3.eth.filter('latest', (error, result) => {
 			if (error) {
-				console.log('Watch error: ', error);
+				console.error('App.startAsyncing()', error);
 				return;
 			}
 			console.log('Block updated!');

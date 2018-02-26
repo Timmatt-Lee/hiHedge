@@ -1,13 +1,9 @@
 pragma solidity ^0.4.18;
 
 import "./Owner.sol";
-import "./lib/iterableMapping.sol";
 
 contract Token is Owner
 {
-    using iterableMapping for iterableMapping.itMap;
-    using iterable2DMapping for iterable2DMapping.it2DMap;
-    
     string public name;
     string public symbol;
     uint8 public decimals = 18;
@@ -16,12 +12,12 @@ contract Token is Owner
     uint public buyPrice = 1 ether;
 
     mapping (address => uint) public balanceOf;
-    iterable2DMapping.it2DMap allowance;
+    mapping (address => mapping (address => uint)) public allowance;
     mapping (address => bool) public frozenAccount;
 
     event FrozenFunds(address target, bool frozen);
     event Transfer(address indexed from, address indexed to, uint value);
-    event Burn(address indexed from, uint value);
+    event Allowance(address indexed from, address indexed to, uint value);
 
     /*
      * Constrctor function
@@ -61,7 +57,7 @@ contract Token is Owner
      */
     function _transfer(address _from, address _to, uint _amount) internal
     {
-        // Prevent transfer to 0x0 address. Use burn() instead
+        // Prevent transfer to no one. Use burn() instead
         require(_to != 0x0);
         // Check if the sender has enough
         require(balanceOf[_from] >= _amount);
@@ -90,7 +86,7 @@ contract Token is Owner
         require(_target != 0x0);          // Prevent mint in vein
         balanceOf[_target] += _amount;
         totalSupply += _amount;
-        Transfer(0, this, _amount);
+        Transfer(0x0, this, _amount);
         Transfer(this, _target, _amount);
     }
     
@@ -101,13 +97,12 @@ contract Token is Owner
      *
      * @param _amount the amount of money to burn
      */
-    function burn(uint _amount) public returns (bool success)
+    function burn(uint _amount) public
     {
         require(balanceOf[msg.sender] >= _amount);   // Check if the sender has enough
         balanceOf[msg.sender] -= _amount;            // Subtract from the sender
         totalSupply -= _amount;                      // Updates totalSupply
-        Burn(msg.sender, _amount);
-        return true;
+        Transfer(msg.sender, 0x0, _amount);
     }
 
     /*
@@ -181,33 +176,22 @@ contract Token is Owner
      * @param _spender The address authorized to spend
      * @param _amount the max amount they can spend
      */
-    function approve(address _spender, uint _amount) public returns (bool success)
+    function approve(address _spender, uint _amount) public
     {
-        allowance.insert(msg.sender,_spender, _amount);
-        return true;
+        _approve(msg.sender, _spender, _amount);
     }
     
-    /*
-     * get every allowance and addresses you have approved
-     *
-     * @return account The addresses who you have authorized your tokens to
-     * @return value The allowance amount for account has the exact same index
-     */
-    function getMyAllowance() public view returns (address[] account,uint[] value)
+    function _approve(address _from, address _to, uint _amount) internal
     {
-        account = allowance.data[msg.sender].keyIndex;
-        value = allowance.data[msg.sender].traverse();
-    }
-    
-    /*
-     * get every allowance and addresses who have approved you
-     *
-     * @return account The addresses authorized you their tokens
-     * @return value The allowance amount for account has the exact same index
-     */
-    function getForMeAllowance() public view returns (address[] account,uint[] value)
-    {
-        (account,value) =  allowance.traverse_outward(msg.sender);
+        // Prevent approve to no one
+        require(_to != 0x0);
+        // Check if the sender has enough
+        require(balanceOf[_from] >= _amount);
+        // Check whether 2 address is frozen
+        require(!frozenAccount[_from] && !frozenAccount[_to]);
+        
+        allowance[_from][_to] = _amount;
+        Allowance(_from, _to, _amount);
     }
     
     /*
@@ -219,12 +203,12 @@ contract Token is Owner
      * @param _to The address of the recipient
      * @param _amount the amount to send
      */
-    function transferFrom(address _from, address _to, uint _amount) public returns (bool success)
+    function transferFrom(address _from, address _to, uint _amount) public
     {
-        require(_amount <= allowance.data[_from].data[_to]);     // Check allowance
-        allowance.data[_from].modify(_to, -_amount);             // Modify the referenced value
+        require(_amount <= allowance[_from][_to]);      // Check allowance
+        allowance[_from][_to] -= _amount;               // Modify the referenced value
+        Allowance(_from, _to, allowance[_from][_to]);
         _transfer(_from, _to, _amount);
-        return true;
     }
 
     /*
@@ -235,14 +219,14 @@ contract Token is Owner
      * @param _from the address of the sender
      * @param _amount the amount of money to burn
      */
-    function burnFrom(address _from, uint _amount) public returns (bool success)
+    function burnFrom(address _from, uint _amount) public
     {
-        require(balanceOf[_from] >= _amount);                       // Check if the targeted balance is enough
-        require(_amount <= allowance.data[_from].data[msg.sender]); // Check allowance
-        balanceOf[_from] -= _amount;                                // Subtract from the targeted balance
-        allowance.data[_from].modify(msg.sender, -_amount);         // Modify the referenced value
-        totalSupply -= _amount;                                     // Update totalSupply
-        Burn(_from, _amount);
-        return true;
+        require(balanceOf[_from] >= _amount);               // Check if the targeted balance is enough
+        require(_amount <= allowance[_from][msg.sender]);   // Check allowance
+        balanceOf[_from] -= _amount;                        // Subtract from the targeted balance
+        allowance[_from][msg.sender] -= _amount;            // Modify the referenced value
+        Allowance(_from, msg.sender, allowance[_from][msg.sender]);
+        totalSupply -= _amount;                             // Update totalSupply
+        Transfer(_from, 0x0, _amount);
     }
 }

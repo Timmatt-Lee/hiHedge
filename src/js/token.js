@@ -11,8 +11,8 @@ Token = {
 	sellPrice: 1,
 	buyPrice: 1,
 	isFrozen: false,
-	myAllowance: null,
-	forMeAllowance: null,
+	myAllowance: {},
+	forMeAllowance: {},
 
 
 	init: function() {
@@ -32,10 +32,35 @@ Token = {
 		$(document).on('click', '#token #freeze .btn-group button', Token.toggleFrozen);
 		$(document).on('click', '#token #approve button', Token.approve);
 		$(document).on('click', '#token #transferFrom button', Token.transferFrom);
+		$(document).on('click', '#token #burn button', Token.burn);
+		$(document).on('click', '#token #burnFrom button', Token.burnFrom);
 	},
 
 	listeners: function() {
 		$('#token #freeze input').on('keyup', function() { Token.updateFrozenButton(); });
+
+		// 監聽event: Allowance
+		Token.contract.then(() => {
+			// 自己傳送的Allowance
+			Token.instance.Allowance({ from: web3.eth.defaultAccount }, { fromBlock: 0 }, (error, result) => {
+				if (error) {
+					console.error('Event Allowance error: ', error);
+					return;
+				}
+				Token.myAllowance[result.args.to] = web3.fromWei(result.args.value);
+			});
+			// 被別人允許的Allowance
+			Token.instance.Allowance({ to: web3.eth.defaultAccount }, { fromBlock: 0 }, (error, result) => {
+				if (error) {
+					console.error('Event Allowance error: ', error);
+					return;
+				}
+				Token.forMeAllowance[result.args.from] = web3.fromWei(result.args.value);
+			});
+		}).catch((error) =>
+			console.error('TOken.listeners()=> Allowance: ', error.message));
+
+
 	},
 
 	// 要與區塊鏈同步的資料
@@ -48,10 +73,6 @@ Token = {
 		Token.getThisFrozen();
 		// 更新凍結欄位的帳戶的凍結狀態
 		Token.updateFrozenButton();
-		// 取得所有你認可的帳戶和對應允許金
-		Token.getMyAllowance();
-		// 取得所有認可你的帳戶和對應允許金
-		Token.getForMeAllowance();
 	},
 
 	initUI: function() {
@@ -88,7 +109,7 @@ Token = {
 			console.log('Success: init UI!');
 
 		}).catch((error) =>
-			console.error('Token.initUI(): ', error.message));
+			console.error('Token.initUI()', error.message));
 	},
 
 	updateUI: function() {
@@ -106,16 +127,20 @@ Token = {
 		$('#token .isFrozenTooltip').tooltip(Token.isFrozen ? 'enable' : 'disable');
 		$('#token .isFrozenTooltip *').prop('disabled', Token.isFrozen);
 
-		// 更新允許清單
-		$('#token #myAllowance_list table tbody').empty();
-		$.each(Token.myAllowance, function(index, [account, value]) {
-			$('#token #myAllowance_list table > tbody').append('<tr><th scope="row">' + (index + 1) + '</th> <td>' + account + '</td> <td>' + value + '</td></tr>');
-		});
-
-		// 更新被允許清單
-		$('#token #forMeAllowance_list table tbody').empty();
-		$.each(Token.forMeAllowance, function(index, [account, value]) {
-			$('#token #forMeAllowance_list table > tbody').append('<tr><th scope="row">' + (index + 1) + '</th> <td>' + account + '</td> <td>' + value + '</td></tr>');
+		// 更新允許與被允許清單
+		$.each({ '#myAllowance_list': Token.myAllowance, '#forMeAllowance_list': Token.forMeAllowance }, (table_id, obj) => {
+			// 將原本的obj轉成[[],[],[],...]比較好排序
+			var arr = [];
+			for (var _address in obj) {
+				if (obj[_address] > 0) // 過濾掉Allowance已經是0的
+					arr.push([_address, obj[_address]]);
+			}
+			arr.sort((a, b) => { return b[1] - a[1] });
+			// table UI
+			$('#token ' + table_id + ' table tbody').empty();
+			$.each(arr, (index, [account, value]) => {
+				$('#token ' + table_id + ' table > tbody').append('<tr><th scope="row">' + (index + 1) + '</th> <td>' + account + '</td> <td>' + value + '</td></tr>');
+			});
 		});
 	},
 
@@ -135,7 +160,7 @@ Token = {
 			console.log('Success: ' + _message + ' updated!');
 
 		}).catch((error) =>
-			console.error('Token.getBalances(): ', error.message));
+			console.error('Token.getBalances()', error.message));
 	},
 
 	transfer: function() {
@@ -157,7 +182,7 @@ Token = {
 			alert('Success: ' + _message + '!')
 
 		).catch((error) =>
-			console.error('Token.transfer(): ', error.message));
+			console.error('Token.transfer()', error.message));
 	},
 
 	sell: function() {
@@ -183,7 +208,7 @@ Token = {
 			alert('Success: ' + _message + ' for ' + web3.fromWei(_soldValue) + ' ether!')
 
 		).catch((error) =>
-			console.error('Token.sell(): ', error.message));
+			console.error('Token.sell():', error.message));
 	},
 
 	buy: function() {
@@ -210,7 +235,7 @@ Token = {
 			alert('Success: buy ' + web3.fromWei(_boughtAmount) + Token.symbol + _message + '!')
 
 		).catch((error) =>
-			console.error('Token.buy(): ', error.message));
+			console.error('Token.buy()', error.message));
 	},
 
 	setSellPrice: function() {
@@ -252,7 +277,7 @@ Token = {
 			alert('Success: ' + _message + '!');
 
 		}).catch((error) =>
-			console.error('Token.setBuyPrice(): ', error.message));
+			console.error('Token.setBuyPrice()', error.message));
 	},
 
 	getPrices: function() {
@@ -273,7 +298,7 @@ Token = {
 			console.log('Success: ' + _message + ' updated!');
 
 		}).catch((error) =>
-			console.error('Token.getPrices(): ', error.message));
+			console.error('Token.getPrices()', error.message));
 	},
 
 	mint: function() {
@@ -299,7 +324,7 @@ Token = {
 			alert('Success: ' + _message + '!')
 
 		).catch((error) =>
-			console.error('Token.mint(): ', error.message));
+			console.error('Token.mint()', error.message));
 	},
 
 	updateFrozenButton: function() {
@@ -310,7 +335,7 @@ Token = {
 			_address = web3.eth.defaultAccount;
 
 		var _message = 'frozen button state for ' + _address;
-		console.log('Loading: ' + _message + ' ...');
+		console.log('Loading: ' + _message + '...');
 
 		Token.getFrozen(_address).then((_isFrozen) => {
 			// 更新pre內文，顯示目前帳戶是否被凍結
@@ -328,7 +353,7 @@ Token = {
 			console.log('Success: ' + _message + ' updated!');
 
 		}).catch((error) =>
-			console.error('Token.updateFrozenButton(): ', error.message));
+			console.error('Token.updateFrozenButton()', error.message));
 	},
 
 	toggleFrozen: function() {
@@ -350,7 +375,7 @@ Token = {
 			alert('Success: ' + (_isFrozen ? 'Unfreeze ' : 'Freeze ') + _address + '!')
 
 		).catch((error) =>
-			console.error('Token.toggleFrozen(): ', error.message));
+			console.error('Token.toggleFrozen()', error.message));
 	},
 
 	getThisFrozen: function() {
@@ -363,7 +388,7 @@ Token = {
 			console.log('Success: ' + _message + ' updated!');
 
 		}).catch((error) =>
-			console.error('Token.getThisFrozen(): ', error.message));
+			console.error('Token.getThisFrozen()', error.message));
 	},
 
 	getFrozen: function(_address) {
@@ -371,7 +396,7 @@ Token = {
 			return Token.instance.frozenAccount(_address);
 
 		}).catch((error) =>
-			console.error('Token.getForzen(): ', error.message));
+			console.error('Token.getForzen()', error.message));
 	},
 
 	approve: function() {
@@ -404,52 +429,6 @@ Token = {
 			console.error('Token.approve: ', error.message));
 	},
 
-	getMyAllowance: function() {
-		var _message = 'this account\'s allowance list';
-		console.log('Loading: ' + _message + '...');
-
-		Token.contract.then(() => {
-			return Token.instance.getMyAllowance();
-
-		}).then((result) => {
-			// 排序允許操控金額的多寡
-			Token.myAllowance = [];
-			for (i = 0; i < result[0].length; i++)
-				Token.myAllowance.push([result[0][i], web3.fromWei(result[1][i])]);
-			Token.myAllowance.sort(function(a, b) {
-				return b[1] - a[1];
-			});
-			Token.updateUI();
-			// 成功
-			console.log('Success: ' + _message + ' updated!');
-
-		}).catch((error) =>
-			console.error('Token.getMyAllowance(): ', error.message));
-	},
-
-	getForMeAllowance: function() {
-		var _message = 'the list of allowances who have approved you';
-		console.log('Loading: ' + _message + '...');
-
-		Token.contract.then(() => {
-			return Token.instance.getForMeAllowance();
-
-		}).then((result) => {
-			// 排序允許操控金額的多寡
-			Token.forMeAllowance = [];
-			for (i = 0; i < result[0].length; i++)
-				Token.forMeAllowance.push([result[0][i], web3.fromWei(result[1][i])]);
-			Token.forMeAllowance.sort(function(a, b) {
-				return b[1] - a[1];
-			});
-			Token.updateUI();
-			// 成功
-			console.log('Success: ' + _message + ' updated!');
-
-		}).catch((error) =>
-			console.error('Token.getForMeAllowance(): ', error.message));
-	},
-
 	transferFrom: function() {
 		var _fromAddress = $('#token #transferFrom input[placeholder="Address from"]').val();
 		var _toAddress = $('#token #transferFrom input[placeholder="Address to"]').val();
@@ -469,17 +448,16 @@ Token = {
 				throw { message: 'amount should more than 0' };
 			}
 			// 直接call合約檢查
-			return Token.instance.getForMeAllowance();
+			return Token.instance.allowance(_fromAddress, web3.eth.defaultAccount);
 
 		}).then((result) => {
-			var _index = result[0].indexOf(_fromAddress)
 			// 檢查有沒有得到來源帳戶的許可
-			if (_index == -1) {
+			if (result == 0) {
 				alert('You have not approved');
 				throw { message: _fromAddress + ' have not approved you' };
 			}
 			// 檢查來源帳戶的許可金額
-			if (_amount > web3.fromWei(result[1][_index]).c[0]) {
+			if (_amount > web3.fromWei(result)) {
 				alert('Allowance is not enough');
 				throw { message: 'allowance is not enough' };
 			}
@@ -489,7 +467,64 @@ Token = {
 			alert('Success ' + _message + '!')
 
 		).catch((error) =>
-			console.error('Token.transferFrom(): ', error.message));
+			console.error('Token.transferFrom()', error.message));
+	},
+
+	burn: function() {
+		var _amount = $('#token #burn input[placeholder="Amount"]').val();
+
+		var _message = 'burn ' + _amount + Token.symbol;
+		console.log('Pending: ' + _message + '...');
+
+		Token.contract.then(() => {
+			// 如果沒在前端攔截，進到合約裡面它會自動把負數變成uint，然後就爆了
+			if (_amount <= 0) {
+				alert('Amount should more than 0');
+				throw { message: 'amount should more than 0' };
+			}
+			return Token.instance.burn(web3.toWei(_amount));
+
+		}).then(() =>
+			alert('Success: ' + _message + '!')
+
+		).catch((error) =>
+			console.error('Token.burn()', error.message));
+	},
+
+	burnFrom: function() {
+		var _fromAddress = $('#token #burnFrom input[placeholder="Address from"]').val();
+		var _amount = $('#token #burnFrom input[placeholder="Amount"]').val();
+
+		var _message = 'burn ' + _amount + Token.symbol + ' from ' + _fromAddress;
+		console.log('Pending: ' + _message + '...');
+
+		Token.contract.then(() => {
+			// 如果沒在前端攔截，進到合約裡面它會自動把負數變成uint，然後就爆了
+			if (_amount <= 0) {
+				alert('Amount should more than 0');
+				throw { message: 'amount should more than 0' };
+			}
+			// 直接call合約檢查
+			return Token.instance.allowance(_fromAddress, web3.eth.defaultAccount);
+
+		}).then((result) => {
+			// 檢查有沒有得到來源帳戶的許可
+			if (result == 0) {
+				alert('You have not approved');
+				throw { message: _fromAddress + ' have not approved you' };
+			}
+			// 檢查來源帳戶的許可金額
+			if (_amount > web3.fromWei(result).c[0]) {
+				alert('Allowance is not enough');
+				throw { message: 'allowance is not enough' };
+			}
+			return Token.instance.burnFrom(_fromAddress, web3.toWei(_amount));
+
+		}).then(() =>
+			alert('Success ' + _message + '!')
+
+		).catch((error) =>
+			console.error('Token.burnFrom()', error.message));
 	},
 
 };

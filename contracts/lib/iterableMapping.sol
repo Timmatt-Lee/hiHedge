@@ -25,16 +25,26 @@ library iterableMapping
         }
     }
     
-    function modify(itMap storage self, address key, uint delta) internal
-    {
-        insert(self, key, self.data[key]+delta);
-    }
-    
     function remove(itMap storage self, address key) internal
     {
         // swap current key with the last one
         (self.keyIndex[find(self,key)],self.keyIndex[self.keyIndex.length-1]) = (self.keyIndex[self.keyIndex.length-1],self.keyIndex[find(self,key)]);
         self.keyIndex.length--;     // shrink the keyIndex
+    }
+    
+    function get(itMap storage self, address key) internal view returns (uint)
+    {
+        return self.data[key];
+    }
+    
+    function getKey(itMap storage self, uint index) internal view returns (address)
+    {
+        return self.keyIndex[index];
+    }
+    
+    function modify(itMap storage self, address key, uint delta) internal
+    {
+        insert(self, key, self.data[key]+delta);
     }
 
     function exist(itMap storage self, address key) internal view returns (bool isExist)
@@ -105,8 +115,23 @@ library iterable2DMapping
     function remove(it2DMap storage self, address key) internal
     {
         // swap current key with the last one
-        (self.keyIndex[find(self,key)],self.keyIndex[self.keyIndex.length-1]) = (self.keyIndex[self.keyIndex.length-1],self.keyIndex[find(self,key)]);
+        (self.keyIndex[find(self,key)], self.keyIndex[self.keyIndex.length-1]) = (self.keyIndex[self.keyIndex.length-1], self.keyIndex[find(self,key)]);
         self.keyIndex.length--;     // shrink the keyIndex
+    }
+        
+    function get(it2DMap storage self, address key, address innerKey) internal view returns (uint)
+    {
+        return self.data[key].data[innerKey];
+    }
+    
+    function getKey(it2DMap storage self, address key, uint index) internal view returns (address)
+    {
+        return self.data[key].getKey(index);
+    }
+    
+    function getKey(it2DMap storage self, uint index) internal view returns (address)
+    {
+        return self.keyIndex[index];
     }
 
     function exist(it2DMap storage self, address key) internal view returns (bool isExist)
@@ -149,8 +174,13 @@ library iterable2DMapping
     {
         return self.keyIndex.length;
     }
+    
+    function size(it2DMap storage self, address key) internal view returns (uint)
+    {
+        return self.data[key].keyIndex.length;
+    }
 
-    function traverse_outward(it2DMap storage self,address innerKey) internal view returns (address[] keys, uint[] values)
+    function traverse(it2DMap storage self,address innerKey) internal view returns (address[] keys, uint[] values)
     {
         keys = new address[](find_outward(self,innerKey)[0]);               // find_outward() return length on [0]
         values = new uint[](find_outward(self,innerKey)[0]);
