@@ -136,16 +136,14 @@ contract Token is Owner
         require(this.balance >= revenue);                 // checks if the contract has enough ether to buy
         _transfer(msg.sender, this, revenue*1 ether/sellPrice);   // makes the transfers
         msg.sender.transfer(revenue);                     // sends ether to the seller. It's important to do this last to avoid recursion attacks
-        return revenue;
     }
 
 
     // @notice Buy tokens from contract by sending ether
     function buy() payable public returns (uint amount)
     {
-        amount = msg.value*1 ether / buyPrice;               // calculates the amount
-        _transfer(this, msg.sender, amount);         // makes the transfers
-        return amount;
+        amount = msg.value*1 ether / buyPrice;      // calculates the amount
+        _transfer(this, msg.sender, amount);        // makes the transfers
     }
 
     /*

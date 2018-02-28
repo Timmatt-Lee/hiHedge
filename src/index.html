@@ -3,168 +3,276 @@
 
 <head>
   <meta charset="utf-8">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
-  <title>Token Wallet</title>
-
+  <link rel="shortcut icon" href="img/favicon.png" type="image/png" />
+  <link rel="apple-touch-icon" href="img/favicon.png" type="image/png" />
+  <title>hiHedge</title>
   <!-- Bootstrap -->
   <link href="css/bootstrap.min.css" rel="stylesheet">
-
-  <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
-  <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
-  <!--[if lt IE 9]>
-      <script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
-      <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
-    <![endif]-->
+  <link href="css/sweetalert.css" rel="stylesheet">
+  <!-- App -->
+  <link href="css/app.css" rel="stylesheet">
 </head>
 
 <body>
-  <div id="token" class="container">
-    <div class="row">
-      <div class="col">
-        <h1 class="text-center"><span class="name"></span></h1>
-        <hr/>
+  <nav class="navbar fixed-top navbar-expand-md navbar-dark bg-primary">
+    <a class="navbar-brand" href=""><img src="img/logo.png" class="height-2" /></a>
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+    <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav mr-auto list-group">
+        <li class="nav-item">
+          <a class="nav-link active" href="#tab-token" data-toggle="list" role="tab"><span class="token-name"></span></a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="#tab-trader" data-toggle="list" role="tab">Trader</a>
+        </li>
+      </ul>
+      <form class="form-inline my-2">
+        <input class="form-control mr-sm-2" type="search" placeholder="Search" aria-label="Search">
+        <button class="btn btn-outline-light my-2 my-sm-0" type="submit">Search</button>
+      </form>
+    </div>
+  </nav>
+  <div class="tab-content">
+    <div id="tab-token" class="container fade tab-pane show active" role="tabpanel">
+      <div class="row mt-6">
+        <div class="col">
+          <div class="wallet-minter card mb-3">
+            <h3 class="card-header">Minter</h3>
+            <div class="card-body">
+              <strong><span class="token-name"></span> Balance</strong>: <span class="token-minterBalance"></span> <span class="token-symbol"></span><br/> Ether Balance: <span class="ether-minterBalance"></span> ether<br/>
+            </div>
+          </div>
+          <div class="wallet-user card mb-3">
+            <h3 class="card-header"><span class="token-name"></span> Wallet</h3>
+            <div class="card-body user-balances">
+              <strong><span class="token-name"></span> Balance</strong>: <span class="token-userBalance"></span> <span class="token-symbol"></span>
+              <br/> Ether Balance: <span class="ether-userBalance"></span> ether
+            </div>
+            <div class="card-body">
+              Sell Price: <span class="token-sellPrice"></span> ether / <span class="token-symbol"></span>
+              <br/> Buy Price: <span class="token-buyPrice"></span> ether / <span class="token-symbol"></span>
+            </div>
+            <div class="card-body">
+              Address: <span class="ether-userAddress"></span>
+            </div>
+          </div>
+          <div class="token-userAllowance card mb-3">
+            <h3 class="card-header">Your Allowance</h3>
+            <table class="table table-hover">
+              <thead>
+                <tr>
+                  <th scope="col">#</th>
+                  <th scope="col">To</th>
+                  <th scope="col"><span class="token-symbol"></span></th>
+                </tr>
+              </thead>
+              <tbody>
+              </tbody>
+            </table>
+          </div>
+          <div class="token-forUserAllowance card mb-3">
+            <h3 class="card-header">Allowance for you</h3>
+            <table class="table table-hover">
+              <thead>
+                <tr>
+                  <th scope="col">#</th>
+                  <th scope="col">From</th>
+                  <th scope="col"><span class="token-symbol"></span></th>
+                </tr>
+              </thead>
+              <tbody>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="col">
+          <div class="token-transaction card mb-3">
+            <h3 class="card-header">Transaction</h3>
+            <div class="card-body" id="token-transfer">
+              <h4 class="card-title">Transfer</h4>
+              <div tabindex="0" class="tooltip-gotFrozen position-relative">
+                <input type="text" class="form-control mb-3" placeholder="Address" required>
+                <div class="invalid-tooltip"></div>
+              </div>
+              <div tabindex="0" class="tooltip-gotFrozen position-relative">
+                <input type="number" step="0.001" class="form-control mb-3" placeholder="Amount" min="0.001" required>
+                <div class="invalid-tooltip"></div>
+              </div>
+              <div tabindex="0" class="tooltip-gotFrozen d-inline-block">
+                <button class="btn btn-primary" type="button">Transfer</button>
+              </div>
+            </div>
+            <div class="card-body" id="token-sell">
+              <h4 class="card-title">Sell</h4>
+              <div tabindex="0" class="tooltip-gotFrozen position-relative">
+                <input type="number" step="0.001" class="form-control mb-3" placeholder="Amount" min="0.001" required>
+                <div class="invalid-tooltip"></div>
+              </div>
+              <div tabindex="0" class="tooltip-gotFrozen d-inline-block">
+                <button class="btn btn-primary" type="button">Sell</button>
+              </div>
+            </div>
+            <div class="card-body" id="token-buy">
+              <h4 class="card-title">Buy</h4>
+              <div tabindex="0" class="tooltip-gotFrozen position-relative">
+                <input type="number" step="0.001" class="form-control mb-3" placeholder="ether" min="0.001" required>
+                <div class="invalid-tooltip"></div>
+              </div>
+              <div tabindex="0" class="tooltip-gotFrozen d-inline-block">
+                <button class="btn btn-primary" type="button">Buy</button>
+              </div>
+            </div>
+            <div class="card-body" id="token-setSellPrice">
+              <h4 class="card-title">Set Sell Price</h4>
+              <div tabindex="0" class="tooltip-notOwner position-relative">
+                <input type="number" step="0.001" class="form-control mb-3" placeholder="ether / token" min="0.001" required>
+                <div class="invalid-tooltip"></div>
+              </div>
+              <div tabindex="0" class="tooltip-notOwner d-inline-block">
+                <button class="btn btn-primary" type="button">Set</button>
+              </div>
+            </div>
+            <div class="card-body" id="token-setBuyPrice">
+              <h4 class="card-title">Set Buy Price</h4>
+              <div tabindex="0" class="tooltip-notOwner position-relative">
+                <input type="number" step="0.001" class="form-control mb-3" placeholder="ether / token" min="0.001" required>
+                <div class="invalid-tooltip"></div>
+              </div>
+              <div tabindex="0" class="tooltip-notOwner d-inline-block">
+                <button class="btn btn-primary" type="button">Set</button>
+              </div>
+            </div>
+            <div class="card-body" id="token-mint">
+              <h4 class="card-title">Mint</h4>
+              <div tabindex="0" class="tooltip-notOwner position-relative">
+                <small class="form-text text-muted">Leave blank if the target is yourself</small>
+                <input type="text" class="form-control mb-3" placeholder="Address" />
+              </div>
+              <div tabindex="0" class="tooltip-notOwner position-relative">
+                <input type="number" step="0.001" class="form-control mb-3" placeholder="Amount" min="0.001" required>
+                <div class="invalid-tooltip"></div>
+              </div>
+              <div tabindex="0" class="tooltip-notOwner d-inline-block">
+                <button class="btn btn-primary" type="button">Mint</button>
+              </div>
+            </div>
+            <div class="card-body" id="token-freeze">
+              <h4>Freeze</h4>
+              <div tabindex="0" class="tooltip-notOwner position-relative">
+                <input type="text" class="form-control" placeholder="Address" />
+                <small class="form-text text-muted mb-3">Leave blank if the target is yourself</small>
+              </div>
+              <div tabindex="0" class="tooltip-notOwner d-inline-block">
+                <div class="btn-group" role="group">
+                  <button type="button" class="btn btn-secondary" disabled>Freeze</button>
+                  <button type="button" class="btn btn-secondary" disabled>Unfreeze</button>
+                </div>
+              </div>
+            </div>
+            <div class="card-body" id="token-approve">
+              <h4 class="card-title">Approve</h4>
+              <div tabindex="0" class="tooltip-gotFrozen position-relative">
+                <input type="text" class="form-control mb-3" placeholder="Address" required>
+                <div class="invalid-tooltip"></div>
+              </div>
+              <div tabindex="0" class="tooltip-gotFrozen position-relative">
+                <input type="number" step="0.001" class="form-control mb-3" placeholder="Amount" min="0" required>
+                <div class="invalid-tooltip"></div>
+              </div>
+              <div tabindex="0" class="tooltip-gotFrozen d-inline-block">
+                <button class="btn btn-primary" type="button">Approve</button>
+              </div>
+            </div>
+            <div class="card-body" id="token-transferFrom">
+              <h4 class="card-title">Transfer From</h4>
+              <div tabindex="0" class="tooltip-gotFrozen position-relative">
+                <input type="text" class="form-control" placeholder="Address from" required>
+                <div class="invalid-tooltip"></div>
+              </div>
+              <div tabindex="0" class="tooltip-gotFrozen position-relative">
+                <small class="form-text text-muted">Leave blank if the target is yourself</small>
+                <input type="text" class="form-control mb-3" placeholder="Address to" />
+              </div>
+              <div tabindex="0" class="tooltip-gotFrozen position-relative">
+                <input type="number" step="0.001" class="form-control mb-3" placeholder="Amount" min="0.001" required>
+                <div class="invalid-tooltip"></div>
+              </div>
+              <div tabindex="0" class="tooltip-gotFrozen d-inline-block">
+                <button class="btn btn-primary" type="button">Transfer</button>
+              </div>
+            </div>
+            <div class="card-body" id="token-burn">
+              <h4 class="card-title">Burn</h4>
+              <div class="position-relative">
+                <input type="number" step="0.001" class="form-control mb-3" placeholder="Amount" min="0.001" required>
+                <div class="invalid-tooltip"></div>
+              </div>
+              <button class="btn btn-primary" type="button">Burn</button>
+            </div>
+            <div class="card-body" id="token-burnFrom">
+              <h4 class="card-title">Burn From</h4>
+              <div class="position-relative">
+                <input type="text" class="form-control mb-3" placeholder="Address from" required>
+                <div class="invalid-tooltip"></div>
+              </div>
+              <div class="position-relative">
+                <input type="number" step="0.001" class="form-control mb-3" placeholder="Amount" min="0.001" required>
+                <div class="invalid-tooltip"></div>
+              </div>
+              <button class="btn btn-primary" type="button">Burn</button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
-    <div class="row">
-      <div class="col">
-        <div id="minter_wallet" class="card mb-3">
-          <h3 class="card-header">Minter</h3>
-          <div class="card-body">
-            <strong><span class="name"></span> Balance</strong>: <span class="balance"></span> <span class="symbol"></span><br/> Ether Balance: <span class="etherBalance"></span> ether<br/>
+    <div id="tab-trader" class="container fade tab-pane" role="tabpanel">
+      <div class="row mt-6">
+        <div class="col">
+          <div class="wallet-user card mb-3">
+            <h3 class="card-header"><span class="token-name"></span> Wallet</h3>
+            <div class="card-body user-balances">
+              <strong><span class="token-name"></span> Balance</strong>: <span class="token-userBalance"></span> <span class="token-symbol"></span>
+              <br/> Ether Balance: <span class="ether-userBalance"></span> ether
+            </div>
+            <div class="card-body">
+              Address: <span class="ether-userAddress"></span>
+            </div>
+          </div>
+          <div id="myAllowance_list" class="card mb-3">
+            <h3 class="card-header">Subscription</h3>
+            <table class="table table-hover">
+              <thead>
+                <tr>
+                  <th scope="col">#</th>
+                  <th scope="col">Trader</th>
+                  <th scope="col"><span class="token-symbol"></span></th>
+                </tr>
+              </thead>
+              <tbody>
+              </tbody>
+            </table>
+          </div>
+          <div id="forMeAllowance_list" class="card mb-3">
+            <h3 class="card-header">Your Subscribers</h3>
+            <table class="table table-hover">
+              <thead>
+                <tr>
+                  <th scope="col">#</th>
+                  <th scope="col">Subscribers</th>
+                  <th scope="col"><span class="token-symbol"></span></th>
+                </tr>
+              </thead>
+              <tbody>
+              </tbody>
+            </table>
           </div>
         </div>
-        <div id="user_wallet" class="card mb-3">
-          <h3 class="card-header"><span class="name"></span> Wallet</h3>
-          <div class="card-body" id="balances">
-            <strong><span class="name"></span> Balance</strong>: <span class="balance"></span> <span class="symbol"></span>
-            <br/> Ether Balance: <span class="etherBalance"></span> ether
-          </div>
-          <div class="card-body" id="prices">
-            Sell Price: <span class="sellPrice"></span> ether/<span class="symbol"></span>
-            <br/> Buy Price: <span class="buyPrice"></span> ether/<span class="symbol"></span>
-          </div>
-          <div class="card-body" id="address">
-            Address: <span class="address"></span>
-          </div>
-        </div>
-        <div id="myAllowance_list" class="card mb-3">
-          <h3 class="card-header">Your Allowance</h3>
-          <table class="table table-hover">
-            <thead>
-              <tr>
-                <th scope="col">#</th>
-                <th scope="col">To</th>
-                <th scope="col"><span class="symbol"></span></th>
-              </tr>
-            </thead>
-            <tbody>
-            </tbody>
-          </table>
-        </div>
-        <div id="forMeAllowance_list" class="card mb-3">
-          <h3 class="card-header">Allowance for you</h3>
-          <table class="table table-hover">
-            <thead>
-              <tr>
-                <th scope="col">#</th>
-                <th scope="col">From</th>
-                <th scope="col"><span class="symbol"></span></th>
-              </tr>
-            </thead>
-            <tbody>
-            </tbody>
-          </table>
-        </div>
-      </div>
-      <div class="col">
-        <div id="transaction" class="card mb-3">
-          <h3 class="card-header">Transaction</h3>
-          <div class="card-body" id="transfer">
-            <h4 class="card-title">Transfer</h4>
-            <span tabindex="0" data-toggle="tooltip" class="isFrozenTooltip" title="Sorry, you've got frozen">
-              <input type="text" class="form-control" placeholder="Address" />
-              <input type="text" class="form-control" placeholder="Amount" />
-              <button class="btn btn-primary" type="button">Transfer</button>
-            </span>
-          </div>
-          <div class="card-body" id="sell">
-            <h4 class="card-title">Sell</h4>
-            <span tabindex="0" data-toggle="tooltip" class="isFrozenTooltip" title="Sorry, you've got frozen">
-              <input type="text" class="form-control" placeholder="Amount" />
-              <button class="btn btn-primary" type="button">Sell</button>
-            </span>
-          </div>
-          <div class="card-body" id="buy">
-            <h4 class="card-title">Buy</h4>
-            <span tabindex="0" data-toggle="tooltip" class="isFrozenTooltip" title="Sorry, you've got frozen">
-              <input type="text" class="form-control" placeholder="ether" />
-              <button class="btn btn-primary" type="button">Buy</button>
-            </span>
-          </div>
-          <div class="card-body" id="setSellPrice">
-            <h4 class="card-title">Set Sell Price</h4>
-            <span tabindex="0" data-toggle="tooltip" class="isOwnerTooltip" title="Need Authentication">
-              <input type="text" class="form-control" placeholder="ether / token" />
-              <button class="btn btn-primary" type="button">Set</button>
-            </span>
-          </div>
-          <div class="card-body" id="setBuyPrice">
-            <h4 class="card-title">Set Buy Price</h4>
-            <span tabindex="0" data-toggle="tooltip" class="isOwnerTooltip" title="Need Authentication">
-              <input type="text" class="form-control" placeholder="ether / token" />
-              <button class="btn btn-primary" type="button">Set</button>
-            </span>
-          </div>
-          <div class="card-body" id="mint">
-            <h4 class="card-title">Mint</h4>
-            <span tabindex="0" data-toggle="tooltip" class="isOwnerTooltip" title="Need Authentication">
-              <input type="text" class="form-control" placeholder="Address" />
-              <pre>Leave blank if the target is yourself</pre>
-              <input type="text" class="form-control" placeholder="Amount" />
-              <button class="btn btn-primary" type="button">Mint</button>
-            </span>
-          </div>
-          <div class="card-body" id="freeze">
-            <h4>Freeze</h4>
-            <span tabindex="0" data-toggle="tooltip" class="isOwnerTooltip" title="Need Authentication">
-              <input type="text" class="form-control col" placeholder="Address" />
-              <pre>Leave blank if the target is yourself</pre>
-              <div class="btn-group" role="group">
-                <button type="button" class="btn btn-secondary" disabled>Freeze</button>
-                <button type="button" class="btn btn-secondary" disabled>Unfreeze</button>
-              </div>
-            </span>
-          </div>
-          <div class="card-body" id="approve">
-            <h4 class="card-title">Approve</h4>
-            <span tabindex="0" data-toggle="tooltip" class="isFrozenTooltip" title="Sorry, you've got frozen">
-              <input type="text" class="form-control" placeholder="Address" />
-              <input type="text" class="form-control" placeholder="Amount" />
-              <button class="btn btn-primary" type="button">Approve</button>
-            </span>
-          </div>
-          <div class="card-body" id="transferFrom">
-            <h4 class="card-title">Transfer From</h4>
-            <span tabindex="0" data-toggle="tooltip" class="isFrozenTooltip" title="Sorry, you've got frozen">
-              <input type="text" class="form-control" placeholder="Address from" />
-              <input type="text" class="form-control" placeholder="Address to" />
-              <pre>Leave blank if the target is yourself</pre>
-              <input type="text" class="form-control" placeholder="Amount" />
-              <button class="btn btn-primary" type="button">Transfer</button>
-            </span>
-          </div>
-          <div class="card-body" id="burn">
-            <h4 class="card-title">Burn</h4>
-            <input type="text" class="form-control" placeholder="Amount" />
-            <button class="btn btn-primary" type="button">Burn</button>
-          </div>
-          <div class="card-body" id="burnFrom">
-            <h4 class="card-title">Burn From</h4>
-            <input type="text" class="form-control" placeholder="Address from" />
-            <input type="text" class="form-control" placeholder="Amount" />
-            <button class="btn btn-primary" type="button">Burn</button>
+        <div class="col">
+          <div id="trader" class="card mb-3">
+            <h3 class="card-header">Trader</h3>
           </div>
         </div>
       </div>
@@ -174,6 +282,7 @@
   <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
   <script src="js/jquery.min.js"></script>
   <script src="js/popper.min.js"></script>
+  <script src="js/sweetalert.min.js"></script>
   <script src="js/bootstrap.min.js"></script>
   <!-- Include all compiled plugins (below), or include individual files as needed -->
   <script src="js/truffle-contract.js"></script>

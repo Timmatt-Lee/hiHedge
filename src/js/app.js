@@ -21,19 +21,20 @@ App = {
 	},
 
 	initContract: function() {
-		$.getJSON('Token.json', function(data) {
+		$.getJSON('Trader.json', function(data) {
 			// Get the necessary contract artifact file and instantiate it with truffle-contract.
 			var TokenArtifact = data;
-			App.contracts.Token = TruffleContract(TokenArtifact);
+			App.contracts.Trader = TruffleContract(TokenArtifact);
 			// Set the provider for our contract.
-			App.contracts.Token.setProvider(web3.currentProvider);
+			App.contracts.Trader.setProvider(web3.currentProvider);
 
 			// 將已部屬的合約和其實例加載到Token的成員變數裡
-			Token.contract = App.contracts.Token.deployed(); // deployed()回傳一個Promise物件
-			Token.contract.then((instance) => Token.instance = instance);
-
-			// 初始化Token
-			Token.init();
+			Token.contract = App.contracts.Trader.deployed(); // deployed()回傳一個Promise物件
+			Token.contract.then((instance) => {
+				Token.instance = instance;
+				// 初始化Token
+				Token.init();
+			});
 		});
 
 		App.startAsyncing(); //異步同步
