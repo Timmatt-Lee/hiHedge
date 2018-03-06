@@ -1,7 +1,67 @@
-.height-2{
-	height: 2rem;
+@media (min-width:768px) {
+  /* 大於bootstrap的md */
+  /* 側邊攔要是側邊攔 */
+  .sidebar-md {
+    position: sticky;
+    height: calc(100vh - 4.4rem);
+    top: 4.4rem;
+    /* top和上面height減去的要一樣 */
+    width: 40%
+  }
+  /* 根據側邊攔目前比例去調整地址複製欄的最大長度 */
+  .sidebar-md .table-hasAddress td.address-copier {
+    /*
+    * 因為table的寬度是由內容(tr, tb)決定的
+    * 所以必須手動先設定此欄位長度，才能控制整個table不會爆掉
+    * 沒使用css辦法偵測線應有寬度（除非用js）
+    */
+    max-width: calc(40vw - 9.2rem);
+  }
 }
 
-.mt-6{
-	margin-top: 5.3rem !important;
+@media (max-width:768px) {
+  /* 小於bootstrap的md */
+  /* 側邊攔變回普通的col就好囉 */
+  .sidebar-md {
+    width: 100%;
+  }
+  /* 根據側邊攔目前比例去調整地址複製欄的最大長度 */
+  .sidebar-md .table-hasAddress td.address-copier {
+    /*
+    * 因為table的寬度是由內容(tr, tb)決定的
+    * 所以必須手動先設定此欄位長度，才能控制整個table不會爆掉
+    * 沒使用css辦法偵測線應有寬度（除非用js）
+    */
+    max-width: calc(100vw - 9.6rem);
+  }
+}
+
+.tooltip-login button:disabled, .tooltip-notOwner button:disabled, .tooltip-gotFrozen button:disabled {
+  /* 讓所有tooltip底下的按鈕遮蔽pointer監聽，避免無法hover到tooltips */
+  pointer-events: none;
+}
+
+.address-copier {
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.table-hasAddress td.address-copier {
+  /* 重新設定是Address Copier的padding */
+  /* 下方是給水平卷軸與內容之間有點留白 */
+  padding-bottom: .45rem;
+  /* 右方要進用因為simpleBar會複寫又卷軸的位置 */
+  padding-right: 0;
+  /* 以下是盡量模擬原td應有的屬性但把padding調整成margin以相容simpleBar */
+  padding-left: 0;
+  margin-left: .75rem;
+  margin-right: .25rem;
+  /* 目前還不知道為甚麼，反正給tr畫邊線就好
+  有simpleBar的td先不要，不然會有線各種位移或變粗的問題 */
+  border-top: 0;
+}
+
+.table-hasAddress tr {
+  /* 為了解決上面進用了有simpleBar的td的邊線，而用tr取代畫 */
+  border-top: 1px solid #dee2e6;
 }
