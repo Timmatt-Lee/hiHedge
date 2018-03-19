@@ -6,7 +6,6 @@ contract Token is Owner
 {
     string public name;
     string public symbol;
-    uint8 public decimals = 18;
     uint public totalSupply;
     uint public sellPrice = 1 ether;
     uint public buyPrice = 1 ether;
@@ -22,50 +21,50 @@ contract Token is Owner
     /*
      * Constrctor function
      *
-     * Initializes contract with initial supply tokens to the creator of the contract
+     * Initializes contract with initial supply tokens to the deployer of the contract
      */
-    function Token(uint _supply,string _name,string _symbol) public payable
+    function Token(uint _totalSupply, string _name, string _symbol) public payable
     {
-        totalSupply = _supply * 10 ** uint(decimals); // Update total supply with the decimal amount
-        balanceOf[msg.sender] = totalSupply/10;       // Give the creator 1/10 initial tokens
-        balanceOf[this] = totalSupply*9/10;           // Minter has the rest
-        name = _name;                                 // Set the name for display purposes
-        symbol = _symbol;                             // Set the symbol for display purposes
-    }
-
-    // return user and minter's ether & token balances
-    function getBalances() public view returns (uint minter_token,uint user_token,uint minter_ether,uint user_ether)
-    {
-      return (balanceOf[this],balanceOf[msg.sender],this.balance,msg.sender.balance);
+        totalSupply = _totalSupply * 1 ether;   // Update total supply with the same decimal as ether
+        balanceOf[this] = totalSupply;          // Minter has total supply
+        name = _name;                           // Set the name for display purposes
+        symbol = _symbol;                       // Set the symbol for display purposes
     }
 
     /*
-     * Transfer tokens
-     *
+     * return user and minter's ether & token balances
+     */
+    function getBalances() public view returns (uint minter_token, uint user_token, uint minter_ether, uint user_ether)
+    {
+      return (balanceOf[address(this)], balanceOf[msg.sender], address(this).balance, msg.sender.balance);
+    }
+
+    /*
      * Send `_amount` tokens to `_to` from your account
      *
-     * @param _to The address of the recipient
-     * @param _amount the amount to send
+     * @param _to Address of the recipient
+     * @param _amount Amount to send
      */
     function transfer(address _to, uint _amount) public
     {
         _transfer(msg.sender, _to, _amount);
     }
 
+
     /*
-     * Internal transfer, only can be called by this contract
+     * Internal transfer
      */
     function _transfer(address _from, address _to, uint _amount) internal
     {
         // Prevent transfer to no one. Use burn() instead
         require(_to != 0x0);
-        // Check if the sender has enough
+        // Check if the sender has enough token
         require(balanceOf[_from] >= _amount);
         // Check for overflows
         require(balanceOf[_to] + _amount > balanceOf[_to]);
         // Check whether 2 address is frozen
         require(!frozenAccount[_from] && !frozenAccount[_to]);
-        // Save this for an assertion in the future
+        // Save this for a assert check later
         uint previousBalances = balanceOf[_from] + balanceOf[_to];
         // Subtract from the sender
         balanceOf[_from] -= _amount;
@@ -77,9 +76,10 @@ contract Token is Owner
     }
 
     /*
-     * @notice Create `_amount` tokens and send it to `_target`
+     * Create `_amount` tokens and send it to `_target`
+     *
      * @param _target Address to receive the tokens
-     * @param _amount the amount of tokens it will receive
+     * @param _amount Amount of tokens it will receive
      */
     function mint(address _target, uint _amount) onlyOwner public
     {
@@ -91,11 +91,9 @@ contract Token is Owner
     }
     
     /*
-     * Destroy tokens
-     *
      * Remove `_amount` tokens from the system irreversibly
      *
-     * @param _amount the amount of money to burn
+     * @param _amount Amount of money to burn
      */
     function burn(uint _amount) public
     {
@@ -106,7 +104,8 @@ contract Token is Owner
     }
 
     /*
-     * @notice Allow users to buy tokens for `newBuyPrice` eth and sell tokens for `newSellPrice` eth
+     * Allow users to buy tokens for `_sellPrice` eth and sell tokens for `_buyPrice` eth
+     *
      * @param _sellPrice Price the users can sell to the contract
      * @param _buyPrice Price users can buy from the contract
      */
@@ -118,36 +117,44 @@ contract Token is Owner
 
     function setSellPrice(uint _sellPrice) onlyOwner public
     {
+        require(_sellPrice != sellPrice);
         sellPrice = _sellPrice;
     }
 
     function setBuyPrice(uint _buyPrice) onlyOwner public
     {
+        require(_buyPrice != buyPrice);
         buyPrice = _buyPrice;
     }
 
     /*
-     * @notice Sell `amount` tokens to contract
-     * @param amount amount of tokens to be sold
+     * Sell `_amount` tokens to contract
+     *
+     * @param _amount Amount of tokens to be sold
+     * @return revenue Amount of ether that seller can get
      */
     function sell(uint _amount) public returns (uint revenue)
     {
-        revenue=_amount * sellPrice/1 ether;
-        require(this.balance >= revenue);                 // checks if the contract has enough ether to buy
-        _transfer(msg.sender, this, revenue*1 ether/sellPrice);   // makes the transfers
-        msg.sender.transfer(revenue);                     // sends ether to the seller. It's important to do this last to avoid recursion attacks
-    }
-
-
-    // @notice Buy tokens from contract by sending ether
-    function buy() payable public returns (uint amount)
-    {
-        amount = msg.value*1 ether / buyPrice;      // calculates the amount
-        _transfer(this, msg.sender, amount);        // makes the transfers
+        revenue = _amount * sellPrice / 1 ether;
+        require(address(this).balance >= revenue);  // checks if the contract has enough ether to send
+        _transfer(msg.sender, this, _amount);       // transfer
+        msg.sender.transfer(revenue);               // sends ether to the seller. It's important to do this last to avoid recursion attacks
     }
 
     /*
-     * @notice toggle allow/prevent `_target` from sending & receiving tokens
+     * Buy tokens from contract by sending ether
+     *
+     * @return amount Amount of token that buyer can get
+     */
+    function buy() payable public returns (uint amount)
+    {
+        amount = msg.value * 1 ether / buyPrice;    // calculates the amount
+        _transfer(this, msg.sender, amount);        // transfer
+    }
+
+    /*
+     * Toggle allow/prevent `_target` from sending & receiving tokens
+     *
      * @param _target Address to be frozen
      */
     function toggleFrozen(address _target) onlyOwner public
@@ -156,9 +163,10 @@ contract Token is Owner
     }
 
     /*
-     * @notice `_isFrozen? Prevent | Allow` `_target` from sending & receiving tokens
+     * `_isFrozen? Prevent | Allow` `_target` from sending & receiving tokens
+     *
      * @param _target Address to be frozen
-     * @param freeze either to freeze it or not
+     * @param _isFrozen Determine to freeze it or not
      */
     function setFrozen(address _target, bool _isFrozen) onlyOwner public
     {
@@ -171,14 +179,17 @@ contract Token is Owner
      *
      * Allows `_spender` to spend no more than `_amount` tokens in your behalf
      *
-     * @param _spender The address authorized to spend
-     * @param _amount the max amount they can spend
+     * @param _spender Address authorized to spend
+     * @param _amount Max amount they can spend
      */
     function approve(address _spender, uint _amount) public
     {
         _approve(msg.sender, _spender, _amount);
     }
     
+    /*
+     * internal approve
+     */
     function _approve(address _from, address _to, uint _amount) internal
     {
         // Prevent approve to no one
@@ -193,13 +204,11 @@ contract Token is Owner
     }
     
     /*
-     * Transfer tokens from other address
-     *
      * Send `_amount` tokens to `_to` in behalf of `_from`
      *
-     * @param _from The address of the sender
-     * @param _to The address of the recipient
-     * @param _amount the amount to send
+     * @param _from Address of the sender
+     * @param _to Address of the recipient
+     * @param _amount Amount to send
      */
     function transferFrom(address _from, address _to, uint _amount) public
     {
@@ -210,12 +219,10 @@ contract Token is Owner
     }
 
     /*
-     * Destroy tokens from other account
-     *
      * Remove `_amount` tokens from the system irreversibly on behalf of `_from`.
      *
-     * @param _from the address of the sender
-     * @param _amount the amount of money to burn
+     * @param _from Address of the sender
+     * @param _amount Amount of money to burn
      */
     function burnFrom(address _from, uint _amount) public
     {

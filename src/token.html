@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+
+<div class="row">
+  <div class="sidebar-md" data-simplebar>
+    <div class="wallet-minter card mt-3">
+      <h3 class="card-header">Minter</h3>
+      <div class="card-body">
+        <strong><span class="token-name"></span> Balance</strong>: <span class="token-minterBalance"></span> <span class="token-symbol"></span><br/> Ether Balance: <span class="ether-minterBalance"></span> ether
+      </div>
+      <div class="card-body pt-0">
+        Sell Price: <span class="token-sellPrice"></span> ether / <span class="token-symbol"></span>
+        <br/> Buy Price: <span class="token-buyPrice"></span> ether / <span class="token-symbol"></span>
+      </div>
+    </div>
+    <div class="wallet-user card mt-3">
+      <h3 class="card-header"><span class="token-name"></span> Wallet</h3>
+      <div class="card-body">
+        <strong><span class="token-name"></span> Balance</strong>: <span class="token-userBalance"></span> <span class="token-symbol"></span>
+        <br/> Ether Balance: <span class="ether-userBalance"></span> ether
+      </div>
+      <div class="card-body pt-0">
+        Address:
+        <div class="input-group input-group-sm">
+          <input data-toggle="tooltip" class="address-copier ether-userAddress form-control" readonly>
+          <div class="input-group-append">
+            <button data-toggle="tooltip" class="address-copier ether-userAddress btn btn-outline-secondary">
+                <img src="img/clippy.svg" alt="Copy to clipboard" width="15rem">
+              </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="token-userAllowance card mt-3">
+      <h3 class="card-header">Your Allowance</h3>
+      <table class="table table-hover  table-hasAddress">
+        <thead>
+          <tr>
+            <th scope="col">#</th>
+            <th scope="col">To</th>
+            <th scope="col"><span class="token-symbol"></span></th>
+          </tr>
+        </thead>
+        <tbody>
+        </tbody>
+      </table>
+    </div>
+    <div class="token-forUserAllowance card mt-3">
+      <h3 class="card-header">Allowance for you</h3>
+      <table class="table table-hover table-hasAddress">
+        <thead>
+          <tr>
+            <th scope="col">#</th>
+            <th scope="col">From</th>
+            <th scope="col"><span class="token-symbol"></span></th>
+          </tr>
+        </thead>
+        <tbody>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="col">
+    <div class="token-transaction card my-3">
+      <h3 class="card-header">Transaction</h3>
+      <div class="card-body" id="token-transfer">
+        <h4 class="card-title">Transfer</h4>
+        <div tabindex="0" data-toggle="tooltip" class="tooltip-login tooltip-gotFrozen position-relative">
+          <input type="text" class="form-control mb-3" placeholder="Address" required>
+          <div class="invalid-tooltip"></div>
+        </div>
+        <div tabindex="0" data-toggle="tooltip" class="tooltip-login tooltip-gotFrozen position-relative">
+          <input type="number" step="0.001" class="form-control mb-3" placeholder="Amount" min="0.001" required>
+          <div class="invalid-tooltip"></div>
+        </div>
+        <div tabindex="0" data-toggle="tooltip" class="tooltip-login tooltip-gotFrozen d-inline-block">
+          <button class="btn btn-primary" type="button">Transfer</button>
+        </div>
+      </div>
+      <div class="card-body" id="token-sell">
+        <h4 class="card-title">Sell</h4>
+        <div tabindex="0" data-toggle="tooltip" class="tooltip-login tooltip-gotFrozen position-relative">
+          <input type="number" step="0.001" class="form-control mb-3" placeholder="Amount" min="0.001" required>
+          <div class="invalid-tooltip"></div>
+        </div>
+        <div tabindex="0" data-toggle="tooltip" class="tooltip-login tooltip-gotFrozen d-inline-block">
+          <button class="btn btn-primary" type="button">Sell</button>
+        </div>
+      </div>
+      <div class="card-body" id="token-buy">
+        <h4 class="card-title">Buy</h4>
+        <div tabindex="0" data-toggle="tooltip" class="tooltip-login tooltip-gotFrozen position-relative">
+          <input type="number" step="0.001" class="form-control mb-3" placeholder="ether" min="0.001" required>
+          <div class="invalid-tooltip"></div>
+        </div>
+        <div tabindex="0" data-toggle="tooltip" class="tooltip-login tooltip-gotFrozen d-inline-block">
+          <button class="btn btn-primary" type="button">Buy</button>
+        </div>
+      </div>
+      <div class="card-body" id="token-setSellPrice">
+        <h4 class="card-title">Set Sell Price</h4>
+        <div tabindex="0" data-toggle="tooltip" class="tooltip-login tooltip-notOwner position-relative">
+          <input type="number" step="0.001" class="form-control mb-3" placeholder="ether / token" min="0.001" required>
+          <div class="invalid-tooltip"></div>
+        </div>
+        <div tabindex="0" data-toggle="tooltip" class="tooltip-login tooltip-notOwner d-inline-block">
+          <button class="btn btn-primary" type="button">Set</button>
+        </div>
+      </div>
+      <div class="card-body" id="token-setBuyPrice">
+        <h4 class="card-title">Set Buy Price</h4>
+        <div tabindex="0" data-toggle="tooltip" class="tooltip-login tooltip-notOwner position-relative">
+          <input type="number" step="0.001" class="form-control mb-3" placeholder="ether / token" min="0.001" required>
+          <div class="invalid-tooltip"></div>
+        </div>
+        <div tabindex="0" data-toggle="tooltip" class="tooltip-login tooltip-notOwner d-inline-block">
+          <button class="btn btn-primary" type="button">Set</button>
+        </div>
+      </div>
+      <div class="card-body" id="token-mint">
+        <h4 class="card-title">Mint</h4>
+        <div tabindex="0" data-toggle="tooltip" class="tooltip-login tooltip-notOwner position-relative">
+          <small class="form-text text-muted">Leave blank if the target is yourself</small>
+          <input type="text" class="form-control mb-3" placeholder="Address" />
+        </div>
+        <div tabindex="0" data-toggle="tooltip" class="tooltip-login tooltip-notOwner position-relative">
+          <input type="number" step="0.001" class="form-control mb-3" placeholder="Amount" min="0.001" required>
+          <div class="invalid-tooltip"></div>
+        </div>
+        <div tabindex="0" data-toggle="tooltip" class="tooltip-login tooltip-notOwner d-inline-block">
+          <button class="btn btn-primary" type="button">Mint</button>
+        </div>
+      </div>
+      <div class="card-body" id="token-freeze">
+        <h4>Freeze</h4>
+        <div tabindex="0" data-toggle="tooltip" class="tooltip-login tooltip-notOwner position-relative">
+          <input type="text" class="form-control" placeholder="Address" />
+          <small class="form-text text-muted mb-3">Leave blank if the target is yourself</small>
+        </div>
+        <div tabindex="0" data-toggle="tooltip" class="tooltip-login tooltip-notOwner d-inline-block">
+          <div class="btn-group" role="group">
+            <button type="button" class="btn btn-secondary" disabled>Freeze</button>
+            <button type="button" class="btn btn-secondary" disabled>Unfreeze</button>
+          </div>
+        </div>
+      </div>
+      <div class="card-body" id="token-approve">
+        <h4 class="card-title">Approve</h4>
+        <div tabindex="0" data-toggle="tooltip" class="tooltip-login tooltip-gotFrozen position-relative">
+          <input type="text" class="form-control mb-3" placeholder="Address" required>
+          <div class="invalid-tooltip"></div>
+        </div>
+        <div tabindex="0" data-toggle="tooltip" class="tooltip-login tooltip-gotFrozen position-relative">
+          <input type="number" step="0.001" class="form-control mb-3" placeholder="Amount" min="0" required>
+          <div class="invalid-tooltip"></div>
+        </div>
+        <div tabindex="0" data-toggle="tooltip" class="tooltip-login tooltip-gotFrozen d-inline-block">
+          <button class="btn btn-primary" type="button">Approve</button>
+        </div>
+      </div>
+      <div class="card-body" id="token-transferFrom">
+        <h4 class="card-title">Transfer From</h4>
+        <div tabindex="0" data-toggle="tooltip" class="tooltip-login tooltip-gotFrozen position-relative">
+          <input type="text" class="form-control" placeholder="Address from" required>
+          <div class="invalid-tooltip"></div>
+        </div>
+        <div tabindex="0" data-toggle="tooltip" class="tooltip-login tooltip-gotFrozen position-relative">
+          <small class="form-text text-muted">Leave blank if the target is yourself</small>
+          <input type="text" class="form-control mb-3" placeholder="Address to" />
+        </div>
+        <div tabindex="0" data-toggle="tooltip" class="tooltip-login tooltip-gotFrozen position-relative">
+          <input type="number" step="0.001" class="form-control mb-3" placeholder="Amount" min="0.001" required>
+          <div class="invalid-tooltip"></div>
+        </div>
+        <div tabindex="0" data-toggle="tooltip" class="tooltip-login tooltip-gotFrozen d-inline-block">
+          <button class="btn btn-primary" type="button">Transfer</button>
+        </div>
+      </div>
+      <div class="card-body" id="token-burn">
+        <h4 class="card-title">Burn</h4>
+        <div tabindex="0" data-toggle="tooltip" class="tooltip-login position-relative">
+          <input type="number" step="0.001" class="form-control mb-3" placeholder="Amount" min="0.001" required>
+          <div class="invalid-tooltip"></div>
+        </div>
+        <div tabindex="0" data-toggle="tooltip" class="tooltip-login d-inline-block">
+          <button class="btn btn-primary" type="button">Burn</button>
+        </div>
+      </div>
+      <div class="card-body" id="token-burnFrom">
+        <h4 class="card-title">Burn From</h4>
+        <div tabindex="0" data-toggle="tooltip" class="tooltip-login position-relative">
+          <input type="text" class="form-control mb-3" placeholder="Address from" required>
+          <div class="invalid-tooltip"></div>
+        </div>
+        <div tabindex="0" data-toggle="tooltip" class="tooltip-login position-relative">
+          <input type="number" step="0.001" class="form-control mb-3" placeholder="Amount" min="0.001" required>
+          <div class="invalid-tooltip"></div>
+        </div>
+        <div tabindex="0" data-toggle="tooltip" class="tooltip-login d-inline-block">
+          <button class="btn btn-primary" type="button">Burn</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

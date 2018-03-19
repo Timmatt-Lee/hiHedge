@@ -1,79 +1,158 @@
 pragma solidity ^0.4.18;
 
-import "./Token.sol";
-import "./lib/iterableMapping.sol";
+import "./Owner.sol";
+import "./Share.sol";
 
-contract Trader is Token
+contract Trader
 {
-    // init iterableMapping 
-    using iterableMapping for iterableMapping.itMap;
-    using iterable2DMapping for iterable2DMapping.it2DMap;
-    
-    event Transaction(uint indexed time, address indexed trader, string indexed stock, uint price, int amount);
-    event Subscription(address indexed from, address indexed to, uint amount);
-    
-    address[] public trader;    // users who can transact and emit transaction to subscribers
-    iterable2DMapping.it2DMap subscription;
-    mapping (address => uint) public fee;  // subscription fee
+    address[] public trader;                            // all traders
+    mapping(address => address[]) public subscriber;    // key: trader, index: trader's subscribers
+    mapping(address => Share) public share;             // each trader's Share contract
     
     /*
-     * Constrctor function
-     *
-     * Initializes Token
+     * Get all traders in array type
      */
-    function Trader() public Token(10000, "hiCoin", "✋")
+    function getTraders() public view returns (address[])
     {
-        
+        return trader;
     }
     
     /*
-     * @notice Exclude non-Traders/Traders
-     * @param _isTrader Toggle the function can only access to Traders/non-Traders
+     * Get all subscribers of `_trader` in array type
      */
-    modifier isTrader(bool _isTrader)
+    function getSubscribers(address _trader) public view returns (address[])
     {
-        bool result = _isTrader ? false : true;
+        return subscriber[_trader];
+    }
+    
+    /*
+     * Require `_target` is `_isTrader? trader | not trader`
+     *
+     * @param _target Address to check
+     * @param _isTrader Require trader or not trader
+     */
+    modifier isTrader(address _target, bool _isTrader)
+    {
         for(uint i=0; i < trader.length; i++)
         {
-            if(msg.sender == trader[i])
-                result = _isTrader ? true : false;
+            if(_target == trader[i])
+            {
+                if(_isTrader)
+                {
+                    // to trick the final require()
+                    _isTrader = false;
+                    break;
+                }
+                else
+                    revert();
+            }
         }
-        require(result);
+        /* 
+         * Loop check done, require `_isTrader` == false
+         *
+         * if require trader and `_target` is, then `_isTrader` pretent to be false above   PASS
+         * if require trader and `_target` is NOT, then `_isTrader` remain true             FAIL
+         * if require NOT trader and `_target` is NOT, then `_isTrader` remain false        PASS
+         * if require NOT trader and `_target` is, then this have triggered revert() above  FAIL
+         */
+        require(!_isTrader);
         _;
     }
     
-    // a non-trader register to be a trader who can transact and emit transaction to subscribers
-    function registerTrader() isTrader(false) public
-    {
-        trader[trader.length++] = msg.sender;
-    }
-    
     /*
-     * @notice sender subscribe a trader with amount that bond with trader's strategy afterward
-     * @param _trader Address that sender subscribe to
-     * @param _amount Amount of Token that share ownership to trader 
+     * Require `_trader` is `_isTrader? trader | non-trader`
+     *
+     * @notice same logic as modifier isTrader()
+     * @param _trader Address of a trader
+     * @param _target Address to check
+     * @param _isTrader Require subscriber or not subscriber
      */
-    function subscribe(address _trader, uint _allowance) public
+     modifier isSubscriber(address _trader, address _target, bool _isSubscriber)
     {
-        _transfer(msg.sender, _trader, fee[_trader]);           // pay subscription fee to trader
-        _approve(msg.sender, _trader, _allowance);              // sender approve to trader
-        subscription.insert(_trader, msg.sender, _allowance);   // insert data
-        Subscription(_trader, msg.sender, _allowance);          // record on event
-    }
-    
-    /*
-     * @notice trader make transaction
-     * @param _time Time that transaction happen
-     * @param _stock Name of stock
-     * @param _price Price that trader buy in or sell _amount
-     * @param _amount Amount that trader want to buy(positive number) or sell(negative number)
-     */
-    function transaction(uint _time, string _stock, uint _price, int _amount) isTrader(true) public
-    {
-        for(uint i=0; i < subscription.size(msg.sender); i++)
+        for(uint i=0; i < subscriber[_trader].length; i++)
         {
-            subscription.getKey(msg.sender, i);
+            if(_target == subscriber[_trader][i])
+            {
+                if(_isSubscriber)
+                {
+                    _isSubscriber = false;
+                    break;
+                }
+                else
+                    revert();
+            }
         }
-        Transaction(_time, msg.sender, _stock, _price, _amount);
+        require(!_isSubscriber);
+        _;
+    }
+    
+    /*
+     * Regist as trader
+     *
+     * @require msg.sender is NOT trader
+     * @param _totalShare
+     * @param _splitting Splitting ratio of share in the benefit
+     * @param _fee Subscription fee
+     */
+    function registerTrader(uint _totalShare, uint _splitting, uint _fee) isTrader(msg.sender, false) payable public
+    {
+        require(_totalShare >= 1 ether);       // total share should more than min margin
+        require(msg.value >= 1 ether);         // sender should pay at least min margin at first
+        trader[trader.length++] = msg.sender;   // append trader list
+        share[msg.sender] = new Share(_totalShare, _splitting, _fee);   //make Share contract
+        share[msg.sender].buy(msg.sender, msg.value);   // initial share for sender's initial pay
+    }
+    
+    /*
+     * Subscribe to a trader
+     *
+     * @require `_trader` must be an existed trader
+     * @require you must not use to be a subscriber
+     * @param _trader Trader you want to subscribe
+     */
+    function subscribe(address _trader) isTrader(_trader, true) isSubscriber(_trader, msg.sender, false) payable public
+    {
+        subscriber[_trader][subscriber[_trader].length++] = msg.sender;     // append trader's subscriber list
+        share[_trader].buy(msg.sender, msg.value - share[_trader].fee());   // buy shares for buyer (minus subscription fee)
+        _trader.transfer(share[_trader].fee());                             // trasfer subscription fee (ether) to trader
+    }
+    
+    /*
+     * Buy trader's shares
+     *
+     * @require `_trader` must be an existed trader
+     * @require you must be subscriber of `trader` 
+     * @param _trader Trader you want to subscribe
+     */
+    function buyShare(address _trader) isTrader(_trader, true) isSubscriber(_trader, msg.sender, true) payable public returns (uint amount)
+    {
+        amount = share[_trader].buy(msg.sender, msg.value);  // buy shares for buyer
+    }
+    
+    /*
+     * Sell trader's shares
+     *
+     * @require `_trader` must be an existed trader
+     * @require you must be subscriber of `trader` 
+     * @param _trader Trader you want to subscribe
+     * @param 
+     */
+    function sellShare(address _trader, uint _amount) isTrader(_trader, true) isSubscriber(_trader, msg.sender, true) public returns (uint revenue)
+    {
+        revenue = share[_trader].sell(msg.sender, _amount); // sell shares for seller
+        require(address(this).balance >= revenue);          // checks if the contract has enough ether to send   
+        msg.sender.transfer(revenue);                       // sends ether to the seller. It's important to do this last to avoid recursion attacks
+    }
+    
+    /*
+     * Tranfer trader's shares to `_to`
+     *
+     * @require `_trader` must be an existed trader
+     * @require you must be subscriber of `trader` 
+     * @param _trader Trader you want to subscribe
+     */
+    function transferShare(address _trader, uint _amount, address _to) isTrader(_trader, true) isSubscriber(_trader, msg.sender, true) public
+    {
+        share[_trader].transfer(msg.sender, _to, _amount);  // transfer shares to `_to`
     }
 }
