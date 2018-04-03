@@ -1,8 +1,10 @@
-App = {
+'use strict'
+
+var App = {
 	web3Provider: null,
-	contracts: {},
-	account: undefined,
-	etherBalance: 0,
+	contracts: {}, // Store every contracts' json
+	account: undefined, // User's account
+	etherBalance: 0, // User's ether balance
 
 	init: function() {
 		App.initWeb3();
@@ -14,77 +16,82 @@ App = {
 			// MetaMisk would inject web3
 			App.web3Provider = web3.currentProvider;
 		} else {
-			// set the provider you want from Web3.providers
+			// Set the provider you want from Web3.providers
 			App.web3Provider = new Web3.providers.HttpProvider('http://localhost:8545');
 		}
 		web3 = new Web3(App.web3Provider);
 
-		// 初始化合約
+		// Get json of the contracts & init
 		App.initContract('Token');
-		App.initContract('Share');
-		App.initContract('Trader', Trader.init); // 順邊直接創建Trader了
-		// 做一些全域的UI初始化
+		App.initContract('Trader');
+		App.initContract('TraderCenter').then(TraderCenter.init); // init object in TraderCenter.js
+		// Global UI
 		App.initUI();
-		//異步更新
+		// Async
 		App.startAsyncing();
 	},
 
-	initContract: function(name, callback) {
-		$.getJSON(name + '.json', function(data) {
+	initContract: function(name) {
+		return $.getJSON(name + '.json').success((data) => {
 			// Get the necessary contract artifact file and instantiate it with truffle-contract.
 			App.contracts[name] = TruffleContract(data);
 			// Set the provider for our contract.
 			App.contracts[name].setProvider(web3.currentProvider);
-			// run callback
-			if (callback != null)
-				callback();
 		});
 	},
 
 	initUI: function() {
-		// 使用者帳戶地址
-		if (web3.eth.defaultAccount === undefined) // 若沒登入
+		// user's account
+		App.account = web3.eth.defaultAccount;
+		if (App.account === undefined) // if not login in
 		{
-			// alert to log in
+			// Alert for log in
 			swal('Who are you ?', 'Please log in to your wallet for more', 'warning')
-			// hide some cards
+			// Hide some cards
 			$('.wallet-user, .token-userAllowance, .token-forUserAllowance, .trader-subscription, .trader-subscriber').hide();
-			// 沒登入就來個提示登入的tooltip吧
-			$('.tooltip-login').tooltip({ title: 'Please log in' });
-			// 把上述的欄位進用
+			// Tooltip for log in
+			$('.tooltip-login').tooltip({
+				title: 'Please log in'
+			});
+			// Disable every form with above tooltip
 			$('.tooltip-login *').prop('disabled', true);
 		} else {
-			// 使用者
-			App.account = web3.eth.defaultAccount;
-			// 使用者ether餘額
-			web3.eth.getBalance(web3.eth.defaultAccount, (error, result) => App.etherBalance = web3.fromWei(result));
-			// 複製地址的欄位開啟複製功能
+			// Activate copy function
 			new ClipboardJS('.address-copier');
-			// 更新一波UI
-			App.updateUI();
+			// User's ether balance
+			web3.eth.getBalance(web3.eth.defaultAccount, (error, result) => {
+				App.etherBalance = web3.fromWei(result);
+				// Update global UI
+				App.updateUI();
+			});
 		}
 	},
 
 	updateUI: function() {
-		// 使用者帳號
+		// User's account UI
 		$('input.ether-userAddress').val(App.account);
 		$('.ether-userAddress:not(:input)').text(App.account);
 		$('.ether-userAddress').attr('data-clipboard-text', App.account);
-		// 使用者ether餘額
-		$('.ether-userBalance').text(App.etherBalance);
-		// 各種Tooltip的提示
+		// User's ether balance UI
+		$('.ether-userBalance').text(myNumber(App.etherBalance));
+		// Every warning tootip
 		$('.tooltip-notOwner').attr('data-original-title', 'Need Authentication');
 		$('.tooltip-gotFrozen').attr('data-original-title', 'Sorry, you\'ve got frozen');
-		// 這邊初始化複製地址的tooltip以及綁定監聽器
-		$('.address-copier').tooltip({ title: 'click to copy', trigger: 'manual' });
+		// Bind listener and init for address-copier
+		$('.address-copier').tooltip({
+			title: 'click to copy',
+			trigger: 'manual'
+		});
 		addressCopier_listener('.address-copier');
-		// input後的invalid-tooltip的內文
+		// UI for invalid input
 		$('input[placeholder*="Address"] + .invalid-tooltip').text('I need a valid address');
 		$('input[placeholder*="Amount"] + .invalid-tooltip, input[placeholder*="ether"] + .invalid-tooltip').text('Come on... give me a positive number');
+		// Enable every .myNumber tooltip
+		$('.myNumber').tooltip();
 	},
 
 	startAsyncing: function() {
-		// 監聽最新的區塊
+		// Watch update of blockchain
 		web3.eth.filter('latest', (error, result) => {
 			if (error) {
 				console.error('App.startAsyncing()', error);
@@ -92,14 +99,15 @@ App = {
 			}
 			console.log('Block updated!');
 
+			// Re-fetch several times to avoid update lost
 			for (i = 1; i < 2; i++) {
-				setTimeout(App.asyncList, 2000 * i); // 延遲幾秒後再多次訪問區塊比較不會漏抓資料
+				setTimeout(App.asyncList, 2000 * i);
 			}
 		});
 	},
 
-	asyncList: function() // 在以下加入你要同步的函式
-	{
+	// Add every async function into this list
+	asyncList: function() {
 		Token.async();
 		Trader.async();
 	}
@@ -107,79 +115,116 @@ App = {
 };
 
 $(function() {
-	$(window).load(function() {
-		App.init();
-	});
+	$(window).load(App.init);
 });
 
-// 生成該選擇器下的檢查input是否valid的按鈕
+// Generator for `_selector` to check validity input
 function checkValidityMacro(_selector, _function) {
-	// 點按按鈕時開啟檢查，若全數input都valid則call `_function`
+	// As soon as click, check if all input valid then call `_function`
 	$(_selector + ' button').on('click', () => {
-		// 遍歷選擇器底下的所有input
+		// Traverse every child under `_selector`
 		var _selectArr = $(_selector + ' input');
 		var _flag = true;
-		// 檢查所有input是否都valid
+		// Check if every child valid
 		for (var i = 0; i < _selectArr.length; i++) {
 			if (!_selectArr[i].checkValidity())
 				_flag = false;
 		}
-		if (_flag) // 如果全數通過則call `_function`
+		if (_flag) // If every child are valid then do `_function`
 			_function();
-		else // 否則把檢查的class加入讓底下的input顯示提示
+		else // Else inject class into child to show their validity information
 			$(_selector).addClass('was-validated');
 	});
-	// 當focus到其他地方後，檢查就取消
+	// When not focus remove the ckecking state
 	$(':not(' + _selector + ' *)').on('focus', () => $(_selector).removeClass('was-validated'));
 }
 
-// 「複製地址」的tooltip監聽器
+// listener for address-copier
 function addressCopier_listener(_selector) {
 	$(_selector).on({
-		// 以下操作都是針對tooltip
 		'mouseenter': (event) => $(event.delegateTarget).tooltip('show'),
 		'mouseleave': (event) => $(event.delegateTarget).tooltip('hide'),
 		'click': (event) => {
 			var t = $(event.delegateTarget);
+			// Use DOM attr to determine if "Copied" hovering
 			var tID = t.attr('timeoutID');
-			// 以DOM的屬性判斷這個元素是否還有計時器在跑
 			if (typeof tID === typeof undefined || tID === false) {
-				// 代表目前沒有計時器在跑，那我們就要換文字然後讓他懸停三秒
-				// 先暫時停止監聽滑鼠離開
+				// "Copied" is not hovering, then change tooltip text and hover 3s
+				// Stop listening for `mouseleave`
 				t.off('mouseleave');
-				// 因為要更新文字所以要先暫時隱藏他
+				// Change text after hiding tooltip
 				t.tooltip('hide');
-				// 更新文字
-				t.attr('data-original-title', 'Copied');
-				// 剛剛上面那個暫時隱藏一隱藏完就...
+				// Once hiding
 				t.one('hidden.bs.tooltip', () => {
-					// 當然就是趕快再顯示他，因為此時他已經換好提示文字了
+					// Change text in tooltip and show tooltip
+					t.attr('data-original-title', 'Copied');
 					t.tooltip('show');
 				});
-			} else // 代表之前的計時器還沒停止
-				clearTimeout(tID); // 那就清除前一個計時器，下面會重新計時
 
-			// 讓他懸停三秒，三秒後變回原樣，在這個瞬間把這個計時器的id寫進DOM的屬性
+			} else // "Copied" is still hovering
+				clearTimeout(tID); // Clear previous scheduling
+
+			// Start a scheduling for close hovered "Copied" tooltip
 			t.attr('timeoutID', setTimeout(() => {
-				//　讓他再度隱藏，因為又要換文字
+				// After 3s, tooltip become as usual
 				t.tooltip('hide');
 				t.attr('data-original-title', 'click to copy');
-				//　別忘了重啟監聽滑鼠移開
+				// Activate listener for `mouseleave`
 				t.on('mouseleave', (event) => t.tooltip('hide'));
-				// 計時順利完成救把DOM的計時器屬性移除，代表沒有計時器正在運行了
-				t.removeAttr('timeoutID', false);
+				// Remove DOM attr for checking scheduling
+				t.removeAttr('timeoutID');
 			}, 3000));
 		}
 	});
 }
 
-// 更方便的填入有繼承關係的選擇器
+// macro for multi-selector in jq
 function multiSelector(preStr, arr, postStr) {
 	var result = '';
 	for (i in arr) {
-		if (i > 0) // 第一項之後就需要加','
+		if (i > 0) // Add ',' after the first selector
 			result += ','
 		result += (preStr + arr[i] + postStr);
 	}
 	return result;
+}
+
+// Formulate number display
+function myNumber(n) {
+	var d = Math.floor(Math.log(n) / Math.log(10)); // digit of n
+	switch (d) {
+		case -3:
+		case -2:
+		case -1:
+		case 0:
+		case 1:
+		case 2:
+			// 0.001~999.9 show 4 digit
+			return Math.floor(n * 1000) / 1000;
+		case 3:
+		case 4:
+			// 1,000~99,999 show in format '1.23k' or '12.3k'
+			return Math.floor(n / Math.pow(10, d - 2)) / Math.pow(10, 5 - d) + 'k';
+		case 5:
+			// 100,000~999,999 show in format '0.12M'
+			return Math.floor(n / 10000) / 100 + 'M';
+		case 6:
+		case 7:
+		case 8:
+			// 1,000,000~999,999,999 show in format '1.23M','12.3M','123M'
+			return Math.floor(n / Math.pow(10, d - 2)) / Math.pow(10, 8 - d) + 'M';
+		default:
+			// deal with overflow
+			n = n / Math.pow(10, d - 1);
+			if (n == 100) {
+				n /= 10;
+				d++;
+			}
+			// An HTML format of '2.3×10^d'
+			return Math.floor(n) / 10 + '×10<sup>' + d + '</sup>';
+	}
+}
+
+function numberWithCommas(n) {
+	return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }

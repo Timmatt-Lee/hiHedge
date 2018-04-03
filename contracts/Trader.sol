@@ -1,158 +1,226 @@
 pragma solidity ^0.4.18;
 
 import "./Owner.sol";
-import "./Share.sol";
 
-contract Trader
+contract Trader is Owner
 {
-    address[] public trader;                            // all traders
-    mapping(address => address[]) public subscriber;    // key: trader, index: trader's subscribers
-    mapping(address => Share) public share;             // each trader's Share contract
+    // OwnerList index identifier
+    uint8 constant DEPLOYER = 0;
+    uint8 constant REGISTRANT = 1;
     
-    /*
-     * Get all traders in array type
-     */
-    function getTraders() public view returns (address[])
-    {
-        return trader;
-    }
+    uint public totalShare;
+    uint initPrice;             // Backup price to restore as soon as bankrupt
+    uint public price ;         // Price of ether per share
+    uint public fee;            // Subscription fee
+    uint public splitting;      // Splitting ratio per share when appreciation
+    bool public frozen = false; // If this contract's ether balance lower than margin
+
+    address[] public subscriber;// Trader's subscribers
+    mapping (address => uint) public shareOf;
     
+    event transaction(uint time, string stock, int price, uint amount);
+    event appreciation(uint amount);
+    event bankrupted();
+
     /*
-     * Get all subscribers of `_trader` in array type
-     */
-    function getSubscribers(address _trader) public view returns (address[])
-    {
-        return subscriber[_trader];
-    }
-    
-    /*
-     * Require `_target` is `_isTrader? trader | not trader`
+     * Constrctor function
      *
-     * @param _target Address to check
-     * @param _isTrader Require trader or not trader
+     * Initializes ownerList, basic imformation, and buy `_initFund` for registrant
      */
-    modifier isTrader(address _target, bool _isTrader)
+    function Trader(
+        address[] _ownerList,
+        uint _totalTrader,
+        uint _price,
+        uint _fee,
+        uint _splitting) public payable Owner(_ownerList)
     {
-        for(uint i=0; i < trader.length; i++)
+        totalShare = _totalTrader;
+        // This contract store total share at first
+        shareOf[this] = totalShare;
+        // Registrant can customize `price` only when init
+        price = initPrice =_price;
+        fee = _fee;
+        // `splitting` must be devided by 1 ether to be percentage when usage
+        require(_splitting <= 1 ether); 
+        splitting = _splitting;
+        
+        // Registrant's initFund (margin = 1 ether)
+        require(msg.value >= 1 ether);
+        subscriber.push(ownerList[REGISTRANT]);
+        _transfer(this, ownerList[REGISTRANT], msg.value / price);
+    }
+      
+    /*
+     * Get all subscribers of this share contract in array type
+     */
+    function getSubscribers() external view returns (address[])
+    {
+        return subscriber;
+    }
+    
+    // Determine whether `a` is a subscriber or not
+    function isSubscriber(address a) internal view returns (bool)
+    {
+        for(uint i=0; i < subscriber.length; i++)
         {
-            if(_target == trader[i])
-            {
-                if(_isTrader)
-                {
-                    // to trick the final require()
-                    _isTrader = false;
-                    break;
-                }
-                else
-                    revert();
-            }
+            if(a == subscriber[i])
+                return true;
         }
-        /* 
-         * Loop check done, require `_isTrader` == false
-         *
-         * if require trader and `_target` is, then `_isTrader` pretent to be false above   PASS
-         * if require trader and `_target` is NOT, then `_isTrader` remain true             FAIL
-         * if require NOT trader and `_target` is NOT, then `_isTrader` remain false        PASS
-         * if require NOT trader and `_target` is, then this have triggered revert() above  FAIL
-         */
-        require(!_isTrader);
-        _;
+        return false;
+    }
+
+    /*
+     * Transfer share
+     *
+     * @param _to Address of the recipient
+     * @param _amount Amount of share to send
+     */
+    function transfer(address _to, uint _amount) external
+    {
+        _transfer(msg.sender, _to, _amount);
+    }
+    
+    function _transfer(address _from, address _to, uint _amount) internal
+    {
+        // Prevent transfer to no one.
+        require(_to != 0x0);
+        // Check if the sender has enough share
+        require(shareOf[_from] >= _amount);
+        // Check for overflows
+        require(shareOf[_to] + _amount > shareOf[_to]);
+        // Subtract from the sender
+        shareOf[_from] -= _amount;
+        // Add to the recipient
+        shareOf[_to] += _amount;
     }
     
     /*
-     * Require `_trader` is `_isTrader? trader | non-trader`
+     * Buy share
      *
-     * @notice same logic as modifier isTrader()
-     * @param _trader Address of a trader
-     * @param _target Address to check
-     * @param _isTrader Require subscriber or not subscriber
+     * @return amount Amount of share that buyer can get
      */
-     modifier isSubscriber(address _trader, address _target, bool _isSubscriber)
+    function buy() external payable returns (uint amount)
     {
-        for(uint i=0; i < subscriber[_trader].length; i++)
+        // Unfrooze if trader's ether balance over than margin
+        if(frozen && address(this).balance >= 1 ether) frozen = false;
+        // Calculates the amount (deduct subscription fee)
+        amount = (msg.value - (isSubscriber(msg.sender)?0:fee)) / price;
+        // Transfer share
+        _transfer(this, msg.sender, amount);
+        
+        // If not subscriber, add buyer to subscription list
+        if(!isSubscriber(msg.sender))
         {
-            if(_target == subscriber[_trader][i])
-            {
-                if(_isSubscriber)
-                {
-                    _isSubscriber = false;
-                    break;
-                }
-                else
-                    revert();
-            }
+            // Add buyer to subscriber list
+            subscriber.push(msg.sender);
+            // Trasfer subscription fee (ether) to registrant
+            ownerList[REGISTRANT].transfer(fee);
         }
-        require(!_isSubscriber);
-        _;
     }
     
     /*
-     * Regist as trader
+     * Sell `_amount` shares to contract
      *
-     * @require msg.sender is NOT trader
-     * @param _totalShare
-     * @param _splitting Splitting ratio of share in the benefit
-     * @param _fee Subscription fee
+     * @param _amount Amount of shares to be sold
+     * @return revenue Amount of ether that seller can get
      */
-    function registerTrader(uint _totalShare, uint _splitting, uint _fee) isTrader(msg.sender, false) payable public
+    function sell(uint _amount) external returns (uint revenue)
     {
-        require(_totalShare >= 1 ether);       // total share should more than min margin
-        require(msg.value >= 1 ether);         // sender should pay at least min margin at first
-        trader[trader.length++] = msg.sender;   // append trader list
-        share[msg.sender] = new Share(_totalShare, _splitting, _fee);   //make Share contract
-        share[msg.sender].buy(msg.sender, msg.value);   // initial share for sender's initial pay
+        // Calculates the revenue
+        revenue = _amount * price;
+        // Frooze if trader's ether balance will be lower than margin
+        if(address(this).balance - revenue < 1 ether) frozen = true;
+        // Check if trader has enough ether
+        require(address(this).balance >= revenue);
+        // Transfer share
+        _transfer(msg.sender, this, _amount);
+        // Make ether transfer at last
+        msg.sender.transfer(revenue);
     }
     
     /*
-     * Subscribe to a trader
-     *
-     * @require `_trader` must be an existed trader
-     * @require you must not use to be a subscriber
-     * @param _trader Trader you want to subscribe
+     * @require only registrant can modify
+     * @param _fee Subscription fee of ether per subscription
      */
-    function subscribe(address _trader) isTrader(_trader, true) isSubscriber(_trader, msg.sender, false) payable public
+    function setFee(uint _fee) onlyOwner(REGISTRANT) external
     {
-        subscriber[_trader][subscriber[_trader].length++] = msg.sender;     // append trader's subscriber list
-        share[_trader].buy(msg.sender, msg.value - share[_trader].fee());   // buy shares for buyer (minus subscription fee)
-        _trader.transfer(share[_trader].fee());                             // trasfer subscription fee (ether) to trader
+        require(_fee != fee);
+        fee = _fee;
     }
     
     /*
-     * Buy trader's shares
-     *
-     * @require `_trader` must be an existed trader
-     * @require you must be subscriber of `trader` 
-     * @param _trader Trader you want to subscribe
+     * @require only registrant can modify
+     * @param _splitting Splitting ratio in respect of share from each benefit
      */
-    function buyShare(address _trader) isTrader(_trader, true) isSubscriber(_trader, msg.sender, true) payable public returns (uint amount)
+    function setSplitting(uint _splitting) onlyOwner(REGISTRANT) external
     {
-        amount = share[_trader].buy(msg.sender, msg.value);  // buy shares for buyer
+        require(_splitting != splitting);
+        splitting = _splitting;
+    }
+    
+    // emit a transaction event
+    function transact(uint _time, string _stock, int _price, uint _amount) external onlyOwner(DEPLOYER)
+    {
+        require(!frozen);
+        emit transaction(_time, _stock, _price, _amount);
     }
     
     /*
-     * Sell trader's shares
+     * When trader earned, deployer can deposit ether to raise the price
+     * and subscriber can have splitting benifit
      *
-     * @require `_trader` must be an existed trader
-     * @require you must be subscriber of `trader` 
-     * @param _trader Trader you want to subscribe
-     * @param 
+     * @require only deployer can call
      */
-    function sellShare(address _trader, uint _amount) isTrader(_trader, true) isSubscriber(_trader, msg.sender, true) public returns (uint revenue)
+    function appreciate() onlyOwner(DEPLOYER) payable external
     {
-        revenue = share[_trader].sell(msg.sender, _amount); // sell shares for seller
-        require(address(this).balance >= revenue);          // checks if the contract has enough ether to send   
-        msg.sender.transfer(revenue);                       // sends ether to the seller. It's important to do this last to avoid recursion attacks
+        require(!frozen);
+        // Appreciate the price (deduct splitting)
+        price += msg.value * (1 ether-splitting) / 1 ether / (totalShare-shareOf[this]);
+        // Emit event
+        emit appreciation(msg.value);
+        // Send splitting benifit (ether) to all subscriber
+        for(uint i=0; i<subscriber.length; i++)
+            subscriber[i].transfer(
+                // according to subscriber's share ratio
+                // `splitting` must be devided by 1 ether to be percentage
+                msg.value * shareOf[subscriber[i]] * splitting / 1 ether / (totalShare-shareOf[this])
+            );
     }
     
     /*
-     * Tranfer trader's shares to `_to`
+     * When trader lost, deployer can withdraw `_value` ether to depreciate the price
+     * and as soon as total shares' value lower than margin, trader bankrupts
      *
-     * @require `_trader` must be an existed trader
-     * @require you must be subscriber of `trader` 
-     * @param _trader Trader you want to subscribe
+     * @require only deployer can call
+     * @param _value Value of ether that the 
      */
-    function transferShare(address _trader, uint _amount, address _to) isTrader(_trader, true) isSubscriber(_trader, msg.sender, true) public
+    function depreciate(uint _value) onlyOwner(DEPLOYER) external
     {
-        share[_trader].transfer(msg.sender, _to, _amount);  // transfer shares to `_to`
+        require(!frozen);
+        // Price decline
+        price -= _value / (totalShare-shareOf[this]);
+        // Frooze if trader's ether balance will be lower than margin
+        if(address(this).balance - _value < 1 ether) frozen = true;
+        // Bankrupt if total shares' value lower than margin
+        if(totalShare * price < 1 ether) bankrupt();
+        // Deployer withdraw ether
+        ownerList[DEPLOYER].transfer(_value);
+    }
+    
+    function bankrupt() internal
+    {
+        // Event event
+        emit bankrupted();
+        price = initPrice;
+
+        for(uint i=0; i<subscriber.length; i++)
+        {
+            // zeroing share
+            shareOf[subscriber[i]] = 0;
+            // Return ether to subscriber
+            subscriber[i].transfer(
+                address(this).balance * shareOf[subscriber[i]] / (totalShare-shareOf[this])
+            );
+        }
     }
 }

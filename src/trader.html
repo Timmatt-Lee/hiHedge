@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<div class="card mt-3 trader-info-card">
+  <div class="row">
+    <div class="col trader-info-img"></div>
+    <div class="col">
+      <div class="card-body">
+        <h1 class="card-title">
+          <t class="trader-name"></t>
+          <t class="trader-symbol"></t>
+        </h1>
+        <div class="py-2">Total Share:
+          <t class="trader-totalShare"></t>
+          <t class="trader-abbr"></t>
+        </div>
+        <div class="py-2">Price:
+          <t class="trader-price"></t> ETH /
+          <t class="trader-abbr"></t>
+        </div>
+        <div class="py-2 mb-3">My Share:
+          <t class="trader-userShare"></t>
+          <t class="trader-abbr"></t>
+        </div>
+        <blockquote class="mb-0">
+          <p style="opacity:0.5" class="mb-1 trader-description"></p>
+          <footer class="blockquote-footer">
+            <small>
+            <cite title="Source Title" class="trader-name"></cite>
+          </small>
+          </footer>
+        </blockquote>
+      </div>
+      <div class="card-footer">
+        <small class="text-muted">Last Trade 1 day ago</small>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="row">
+  <div class="col">
+    <div class="trader-transaction card my-3">
+      <h3 class="card-header">Transaction</h3>
+      <div class="card-body" id="trader-transfer">
+        <h4 class="card-title">Transfer</h4>
+        <div tabindex="0" data-toggle="tooltip" class="tooltip-login tooltip-gotFrozen position-relative">
+          <input type="text" class="form-control mb-3" placeholder="Address" required>
+          <div class="invalid-tooltip"></div>
+        </div>
+        <div tabindex="0" data-toggle="tooltip" class="tooltip-login tooltip-gotFrozen position-relative">
+          <input type="number" step="0.001" class="form-control mb-3" placeholder="Amount" min="0.001" required>
+          <div class="invalid-tooltip"></div>
+        </div>
+        <div tabindex="0" data-toggle="tooltip" class="tooltip-login tooltip-gotFrozen d-inline-block">
+          <button class="btn btn-primary" type="button">Transfer</button>
+        </div>
+      </div>
+      <div class="card-body" id="trader-sell">
+        <h4 class="card-title">Sell</h4>
+        <div tabindex="0" data-toggle="tooltip" class="tooltip-login tooltip-gotFrozen position-relative">
+          <input type="number" step="0.001" class="form-control mb-3" placeholder="Amount" min="0.001" required>
+          <div class="invalid-tooltip"></div>
+        </div>
+        <div tabindex="0" data-toggle="tooltip" class="tooltip-login tooltip-gotFrozen d-inline-block">
+          <button class="btn btn-primary" type="button">Sell</button>
+        </div>
+      </div>
+      <div class="card-body" id="trader-buy">
+        <h4 class="card-title">Buy</h4>
+        <div tabindex="0" data-toggle="tooltip" class="tooltip-login tooltip-gotFrozen position-relative">
+          <input type="number" step="0.001" class="form-control mb-3" placeholder="ETH" min="0.001" required>
+          <div class="invalid-tooltip"></div>
+        </div>
+        <div tabindex="0" data-toggle="tooltip" class="tooltip-login tooltip-gotFrozen d-inline-block">
+          <button class="btn btn-primary" type="button">Buy</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

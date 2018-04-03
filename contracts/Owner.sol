@@ -2,22 +2,21 @@ pragma solidity ^0.4.18;
 
 contract Owner
 {
-  address public owner;
+  address[] public ownerList;
 
-  function Owner() public
+  function Owner(address[] _ownerList) public
   {
-    owner = msg.sender;
+    ownerList = _ownerList;
   }
 
-  modifier onlyOwner
+  modifier onlyOwner(uint8 i)
   {
-    require(msg.sender == owner);
+    require(msg.sender == ownerList[i]);
     _;
   }
 
-  // 所有權轉移
-  function transferOwnership(address newOwner) public onlyOwner
+  function transferOwnership(uint8 i, address newOwner) public onlyOwner(i)
   {
-    owner = newOwner;
+    ownerList[i] = newOwner;
   }
  }
