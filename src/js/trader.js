@@ -68,7 +68,8 @@ var createTrader = function(_address) {
 				<a class="dropdown-item" href="' + Trader.selectorID + '"\
 					data-toggle="list" role="tab">' + Trader.name + ' ' + Trader.symbol + '</a>');
 			// Prepare insert html
-			$('.tab-content').append('<div id="tab-trader-' + Trader.address + '" class="container fade tab-pane" role="tabpanel"></div>');
+			$('.tab-content').append('<div id="tab-trader-' + Trader.address + '" \
+				class="container fade tab-pane" role="tabpanel"></div>');
 			// Insert HTML and update its UI after loading it
 			$(Trader.selectorID).load('trader.html', Trader.initUI);
 		},

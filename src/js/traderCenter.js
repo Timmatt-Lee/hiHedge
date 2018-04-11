@@ -121,14 +121,20 @@ var TraderCenter = {
 			// Create Trader Object from trader.js
 			createTrader(t).then((_traderObj) => {
 				TraderCenter.registeredTrader[t] = _traderObj;
+				if (!$.trim($('#navbarSupportedContent .dropdown-menu:first').html()))
+					$('#navbarSupportedContent .dropdown:first').hide();
+				if (!$.trim($('#navbarSupportedContent .dropdown-menu:last').html()))
+					$('#navbarSupportedContent .dropdown:last').hide();
 				// Subscriber & subscription
 				if (_traderObj.registrant == App.account) {
 					// When registrant is user
 					TraderCenter.subscriber[t] = _traderObj.subscriber;
+					$('#navbarSupportedContent .dropdown:first').show();
 					_traderObj.initDOM();
 				} else if (App.account in _traderObj.subscriber) {
 					// When registrant is the other and user is their subscribers
 					TraderCenter.subscription[t] = _traderObj.subscriber[App.account];
+					$('#navbarSupportedContent .dropdown:last').show();
 					_traderObj.initDOM();
 				}
 				// Update trader center UI at last

@@ -22,7 +22,6 @@ var App = {
 		web3 = new Web3(App.web3Provider);
 
 		// Get json of the contracts & init
-		App.initContract('Token');
 		App.initContract('Trader');
 		App.initContract('TraderCenter').then(TraderCenter.init); // init object in TraderCenter.js
 		// Global UI
@@ -181,7 +180,7 @@ function addressCopier_listener(_selector) {
 // macro for multi-selector in jq
 function multiSelector(preStr, arr, postStr) {
 	var result = '';
-	for (i in arr) {
+	for (var i in arr) {
 		if (i > 0) // Add ',' after the first selector
 			result += ','
 		result += (preStr + arr[i] + postStr);
