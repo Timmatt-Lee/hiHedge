@@ -18,7 +18,7 @@ contract Trader is Owner
     address[] public subscriber;// Trader's subscribers
     mapping (address => uint) public shareOf;
     
-    event transaction(uint time, string stock, int price, uint amount);
+    event records(uint time, string stock, int price, uint amount);
     event appreciation(uint amount);
     event bankrupted();
 
@@ -159,10 +159,10 @@ contract Trader is Owner
     }
     
     // emit a transaction event
-    function transact(uint _time, string _stock, int _price, uint _amount) external onlyOwner(DEPLOYER)
+    function record(uint _time, string _stock, int _price, uint _amount) external onlyOwner(DEPLOYER)
     {
         require(!frozen);
-        emit transaction(_time, _stock, _price, _amount);
+        emit records(_time, _stock, _price, _amount);
     }
     
     /*

@@ -13,8 +13,8 @@ var TraderCenter = {
 			TraderCenter.instance = instance;
 			// Init other after get instance
 			TraderCenter.getRegisteredTraders();
-			TraderCenter.bindEvents(); // bind UI with listener
-			TraderCenter.listeners(); // other listener
+			TraderCenter.bindEvents(); // Bind UI with listener
+			TraderCenter.listeners(); // Other listener
 		});
 	},
 

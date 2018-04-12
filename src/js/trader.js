@@ -14,6 +14,7 @@ var createTrader = function(_address) {
 		price: 0, // Exchange rate of ETH per share
 		splitting: 0, // Splitting ratio per share when appreciation
 		fee: 0, // Subscription fee
+		records: [], // Real world transaction record
 
 		init: function(_address) {
 			// Contract address
@@ -23,10 +24,11 @@ var createTrader = function(_address) {
 			// Get contract instance
 			return App.contracts.Trader.at(_address)
 				.then((_instance) => { Trader.instance = _instance })
-				.then(() => Trader.instance.ownerList(1)) // get registrant
+				.then(() => Trader.instance.ownerList(1)) // Get registrant
 				.then((_registrant) => Trader.registrant = _registrant)
-				.then(Trader.fetchData) //dataBase
-				.then(Trader.async); //blockChain
+				.then(Trader.fetchData) // DataBase
+				.then(Trader.async) // BlockChain
+				.then(Trader.eventListener) // BlockChain event listener
 		},
 
 		// Data in blockChain
@@ -93,8 +95,19 @@ var createTrader = function(_address) {
 			$(Trader.selectorID + ' .trader-totalShare').text(myNumber(Trader.totalShare));
 			$(Trader.selectorID + ' .trader-userShare').text(myNumber(Trader.subscriber[App.account].share));
 
+			for (var i = 0; i < Trader.records.length; i++) {
+				var a = Trader.records[i].args;
+				console.log(a.time, a.stock, a.price, a.amount);
+			}
+
 			// Call global's UI update
 			App.updateUI();
+		},
+
+		eventListener: function() {
+			Trader.instance.records(null, { fromBlock: 0 }, (error, result) =>
+				error ? console.error(error) : Trader.records.push(result)
+			);
 		},
 
 		transfer: function() {
@@ -137,6 +150,11 @@ var createTrader = function(_address) {
 				swal('Now only wait for mined', 'buy ' + web3.fromWei(arr[0]) + ' ' + Trader.abbr + _message, 'success')
 
 			).catch((error) => console.error(error.message));
+		},
+
+		record: function(time, stock, price, amount) {
+			Trader.instance.record(time, stock, price, amount)
+				.catch((error) => console.error(error.message));
 		}
 	}
 

@@ -23,7 +23,7 @@ var App = {
 
 		// Get json of the contracts & init
 		App.initContract('Trader');
-		App.initContract('TraderCenter').then(TraderCenter.init); // init object in TraderCenter.js
+		App.initContract('TraderCenter').then(TraderCenter.init); // Init object in TraderCenter.js
 		// Global UI
 		App.initUI();
 		// Async
@@ -40,9 +40,9 @@ var App = {
 	},
 
 	initUI: function() {
-		// user's account
+		// User's account
 		App.account = web3.eth.defaultAccount;
-		if (App.account === undefined) // if not login in
+		if (App.account === undefined) // If not login in
 		{
 			// Alert for log in
 			swal('Who are you ?', 'Please log in to your wallet for more', 'warning')
@@ -99,7 +99,7 @@ var App = {
 			console.log('Block updated!');
 
 			// Re-fetch several times to avoid update lost
-			for (i = 1; i < 2; i++) {
+			for (var i = 1; i < 2; i++) {
 				setTimeout(App.asyncList, 2000 * i);
 			}
 		});
@@ -107,7 +107,6 @@ var App = {
 
 	// Add every async function into this list
 	asyncList: function() {
-		Token.async();
 		Trader.async();
 	}
 
@@ -138,7 +137,7 @@ function checkValidityMacro(_selector, _function) {
 	$(':not(' + _selector + ' *)').on('focus', () => $(_selector).removeClass('was-validated'));
 }
 
-// listener for address-copier
+// Listener for address-copier
 function addressCopier_listener(_selector) {
 	$(_selector).on({
 		'mouseenter': (event) => $(event.delegateTarget).tooltip('show'),
@@ -177,7 +176,7 @@ function addressCopier_listener(_selector) {
 	});
 }
 
-// macro for multi-selector in jq
+// Macro for multi-selector in jq
 function multiSelector(preStr, arr, postStr) {
 	var result = '';
 	for (var i in arr) {
@@ -190,7 +189,7 @@ function multiSelector(preStr, arr, postStr) {
 
 // Formulate number display
 function myNumber(n) {
-	var d = Math.floor(Math.log(n) / Math.log(10)); // digit of n
+	var d = Math.floor(Math.log(n) / Math.log(10)); // Digit of n
 	switch (d) {
 		case -3:
 		case -2:
@@ -213,7 +212,7 @@ function myNumber(n) {
 			// 1,000,000~999,999,999 show in format '1.23M','12.3M','123M'
 			return Math.floor(n / Math.pow(10, d - 2)) / Math.pow(10, 8 - d) + 'M';
 		default:
-			// deal with overflow
+			// Deal with overflow
 			n = n / Math.pow(10, d - 1);
 			if (n == 100) {
 				n /= 10;
