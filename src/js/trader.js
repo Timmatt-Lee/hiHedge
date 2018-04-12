@@ -3,6 +3,7 @@
 var createTrader = function(_address) {
 	var Trader = {
 		instance: null,
+		hasDOM: false,
 		address: 0x0, // Address of this contract
 		registrant: 0x0, // Address who registered this trader
 		selectorID: '', // JQ selector prefix
@@ -27,8 +28,7 @@ var createTrader = function(_address) {
 				.then(() => Trader.instance.ownerList(1)) // Get registrant
 				.then((_registrant) => Trader.registrant = _registrant)
 				.then(Trader.fetchData) // DataBase
-				.then(Trader.async) // BlockChain
-				.then(Trader.eventListener) // BlockChain event listener
+				.then(Trader.async); // BlockChain
 		},
 
 		// Data in blockChain
@@ -64,6 +64,8 @@ var createTrader = function(_address) {
 		},
 
 		initDOM: function() {
+			// toggle bool for pass updateUI()
+			Trader.hasDOM = true;
 			// Add a label in corresponding menu
 			$('#navbarSupportedContent .dropdown-menu:' +
 				(Trader.registrant == App.account ? 'first' : 'last')).append('\
@@ -71,7 +73,7 @@ var createTrader = function(_address) {
 					data-toggle="list" role="tab">' + Trader.name + ' ' + Trader.symbol + '</a>');
 			// Prepare insert html
 			$('.tab-content').append('<div id="tab-trader-' + Trader.address + '" \
-				class="container fade tab-pane" role="tabpanel"></div>');
+				class="container container-xxxl fade tab-pane" role="tabpanel"></div>');
 			// Insert HTML and update its UI after loading it
 			$(Trader.selectorID).load('trader.html', Trader.initUI);
 		},
@@ -82,9 +84,13 @@ var createTrader = function(_address) {
 				'background-image', 'url("../img/characters/' + Trader.name + '.jpg")'
 			);
 			Trader.updateUI();
+			Trader.eventListener(); // BlockChain event listener
 		},
 
 		updateUI: function() {
+			// if there is no DOM, don't updated
+			if (!Trader.hasDOM)
+				return;
 			// Basic information
 			var l = ['name', 'description', 'abbr', 'symbol'];
 			for (var i in l)
@@ -95,19 +101,34 @@ var createTrader = function(_address) {
 			$(Trader.selectorID + ' .trader-totalShare').text(myNumber(Trader.totalShare));
 			$(Trader.selectorID + ' .trader-userShare').text(myNumber(Trader.subscriber[App.account].share));
 
-			for (var i = 0; i < Trader.records.length; i++) {
-				var a = Trader.records[i].args;
-				console.log(a.time, a.stock, a.price, a.amount);
-			}
-
 			// Call global's UI update
 			App.updateUI();
 		},
 
 		eventListener: function() {
-			Trader.instance.records(null, { fromBlock: 0 }, (error, result) =>
-				error ? console.error(error) : Trader.records.push(result)
-			);
+			Trader.instance.records(null, { fromBlock: 0 }, (error, result) => {
+				if (error)
+					return console.error(error);
+
+				// Because blockChain will prevent branch, so if it watchs any new block
+				// it would output previous event; here is to prevent repeated events
+				if (JSON.stringify(result) === JSON.stringify(Trader.records[Trader.records.length - 1]))
+					return;
+
+				Trader.records.push(result);
+				console.log(result);
+				// Record list UI
+				if (Trader.hasDOM)
+					$(Trader.selectorID + ' .trader-record table > tbody').append('\
+						<tr>\
+							<td>' + (new Date(result.args.time.c[0])).toLocaleString() + '</td>\
+							<td>' + result.args.stock + '</td>\
+							<td>' + result.args.price + '</td>\
+							<td>' + result.args.amount + '</td>\
+						</tr>\
+					');
+
+			});
 		},
 
 		transfer: function() {
@@ -153,7 +174,7 @@ var createTrader = function(_address) {
 		},
 
 		record: function(time, stock, price, amount) {
-			Trader.instance.record(time, stock, price, amount)
+			Trader.instance.record((new Date(time)).valueOf(), stock, price, amount)
 				.catch((error) => console.error(error.message));
 		}
 	}

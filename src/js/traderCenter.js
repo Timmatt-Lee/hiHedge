@@ -33,10 +33,10 @@ var TraderCenter = {
 			]);
 		arr.sort((a, b) => b[2] - a[2]);
 		// Subscription list UI
-		$('.trader-subscription table tbody').empty();
+		$('.traderShare-subscription table tbody').empty();
 		$.each(arr, (i, [trader, share, proportion]) => {
 			var s = TraderCenter.registeredTrader[trader];
-			$('.trader-subscription table > tbody').append('\
+			$('.traderShare-subscription table > tbody').append('\
         <tr style="cursor:pointer;"\
 					onclick="$(\'a[href=\\\'' + s.selectorID + '\\\']\').tab(\'show\')">\
           <td>' + s.name + ' ' + s.symbol + '</td>\
@@ -63,10 +63,10 @@ var TraderCenter = {
 			arr = arr.concat(arr2);
 		}
 		// Subscriber list UI
-		$('.trader-subscriber table tbody').empty();
+		$('.traderShare-subscriber table tbody').empty();
 		$.each(arr, (i, [trader, subscriber, share, proportion]) => {
 			var s = TraderCenter.registeredTrader[trader];
-			$('.trader-subscriber table > tbody').append('\
+			$('.traderShare-subscriber table > tbody').append('\
         <tr>\
           <td' + (subscriber == App.account ? '>YOU' : ' data-simplebar\
 						data-toggle="tooltip" class="address-copier" \

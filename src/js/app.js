@@ -106,9 +106,7 @@ var App = {
 	},
 
 	// Add every async function into this list
-	asyncList: function() {
-		Trader.async();
-	}
+	asyncList: function() {}
 
 };
 
