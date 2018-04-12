@@ -84,7 +84,7 @@ var App = {
 		addressCopier_listener('.address-copier');
 		// UI for invalid input
 		$('input[placeholder*="Address"] + .invalid-tooltip').text('I need a valid address');
-		$('input[placeholder*="Amount"] + .invalid-tooltip, input[placeholder*="ether"] + .invalid-tooltip').text('Come on... give me a positive number');
+		$('input[placeholder*="Amount"] + .invalid-tooltip, input[placeholder*="ETH"] + .invalid-tooltip').text('Come on... give me a positive number');
 		// Enable every .myNumber tooltip
 		$('.myNumber').tooltip();
 	},
@@ -106,7 +106,11 @@ var App = {
 	},
 
 	// Add every async function into this list
-	asyncList: function() {}
+	asyncList: function() {
+		// traverse all traders and call their sync function
+		$.each(TraderCenter.registeredTrader, (addr, obj) => obj.async());
+
+	}
 
 };
 

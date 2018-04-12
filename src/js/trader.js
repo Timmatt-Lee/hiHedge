@@ -45,7 +45,7 @@ var createTrader = function(_address) {
 						).then((_share) => // Record in {share: uint,proportion: float}
 							Trader.subscriber[_] = { share: _share, proportion: _share / Trader.totalShare }
 						), Promise.resolve())
-				);
+				).then(Trader.updateUI);
 		},
 
 		// DataBase
@@ -84,6 +84,7 @@ var createTrader = function(_address) {
 				'background-image', 'url("../img/characters/' + Trader.name + '.jpg")'
 			);
 			Trader.updateUI();
+			Trader.UIListener(); // bind UI with listener
 			Trader.eventListener(); // BlockChain event listener
 		},
 
@@ -105,6 +106,13 @@ var createTrader = function(_address) {
 			App.updateUI();
 		},
 
+		UIListener: function() {
+			// checkValidityMacro()會生成該選擇器下的檢查input是否valid的按鈕
+			checkValidityMacro(Trader.selectorID + ' #trader-transfer', Trader.transfer);
+			checkValidityMacro(Trader.selectorID + ' #trader-sell', Trader.sell);
+			checkValidityMacro(Trader.selectorID + ' #trader-buy', Trader.buy);
+		},
+
 		eventListener: function() {
 			Trader.instance.records(null, { fromBlock: 0 }, (error, result) => {
 				if (error)
@@ -116,7 +124,6 @@ var createTrader = function(_address) {
 					return;
 
 				Trader.records.push(result);
-				console.log(result);
 				// Record list UI
 				if (Trader.hasDOM)
 					$(Trader.selectorID + ' .trader-record table > tbody').append('\
@@ -138,7 +145,7 @@ var createTrader = function(_address) {
 			var _message = 'transfer ' + _amount + ' ' + Trader.abbr + ' to ' + _toAddress;
 			console.log('Pending: ' + _message + '...');
 
-			Trader.instance.transfer(_toAddress, web3.toWei(_amount))
+			Trader.instance.transfer(_toAddress, _amount)
 				.then(() =>
 					swal('Now only wait for mined', _message, 'success')
 
@@ -151,12 +158,16 @@ var createTrader = function(_address) {
 
 			console.log('Pending: ' + _message + '...');
 
-			Trader.instance.sell.call(web3.toWei(_sellAmount)).then((result) => [result, Trader.instance.sell(web3.toWei(_sellAmount))]
+			var _soldETH = 0;
+			Trader.instance.sell.call(_sellAmount)
+				.then((result) => {
+					_soldETH = web3.fromWei(result);
+					return Trader.instance.sell(_sellAmount);
 
-			).then((arr) =>
-				swal('Now only wait for mined', _message + ' for ' + web3.fromWei(arr[0]) + ' ether!', 'success')
+				}).then(() =>
+					swal('Now only wait for mined', _message + ' for ' + _soldETH + ' ether!', 'success')
 
-			).catch((error) => console.error(error.message));
+				).catch((error) => console.error(error.message));
 		},
 
 		buy: function() {
@@ -165,12 +176,16 @@ var createTrader = function(_address) {
 
 			console.log('Pending: buy ' + _buyValue + ' ' + Trader.abbr + _message + '...');
 
-			Trader.instance.buy.call({ value: web3.toWei(_buyValue) }).then((result) => [result, Trader.instance.buy({ value: web3.toWei(_buyValue) })]
+			var _boughtAmount = 0;
+			Trader.instance.buy.call({ value: web3.toWei(_buyValue) })
+				.then((result) => {
+					_boughtAmount = result;
+					return Trader.instance.buy({ value: web3.toWei(_buyValue) })
 
-			).then((arr) =>
-				swal('Now only wait for mined', 'buy ' + web3.fromWei(arr[0]) + ' ' + Trader.abbr + _message, 'success')
+				}).then(() =>
+					swal('Now only wait for mined', 'buy ' + _boughtAmount + ' ' + Trader.abbr + _message, 'success')
 
-			).catch((error) => console.error(error.message));
+				).catch((error) => console.error(error.message));
 		},
 
 		record: function(time, stock, price, amount) {
