@@ -3,34 +3,44 @@
   <div class="row">
     <div class="col trader-info-img"></div>
     <div class="col">
-      <div class="card-body">
-        <h1 class="card-title">
-          <t class="trader-name"></t>
-          <t class="trader-symbol"></t>
-        </h1>
-        <div class="py-2">Total Share:
-          <t class="trader-totalShare"></t>
-          <t class="trader-abbr"></t>
+      <div id="trader-info-carousel" class="carousel slide" data-ride="carousel">
+        <div class="carousel-inner">
+          <ol class="carousel-indicators">
+            <li data-slide-to="0" class="active"></li>
+            <li data-target="#trader-info-carousel" data-slide-to="1"></li>
+          </ol>
+          <div class="carousel-item active">
+            <div class="card-body">
+              <h1 class="card-title">
+                <t class="trader-name"></t>
+                <t class="trader-symbol"></t>
+              </h1>
+              <div class="py-2">Total Share:
+                <t class="trader-totalShare"></t>
+                <t class="trader-abbr"></t>
+              </div>
+              <div class="py-2">Price:
+                <t class="trader-price"></t> ETH /
+                <t class="trader-abbr"></t>
+              </div>
+              <div class="py-2 mb-3">My Share:
+                <t class="trader-userShare"></t>
+                <t class="trader-abbr"></t>
+              </div>
+              <blockquote class="mb-0">
+                <p style="opacity:0.5" class="mb-1 trader-description"></p>
+                <footer class="blockquote-footer">
+                  <small>
+                  <cite title="Source Title" class="trader-name"></cite>
+                </small>
+                </footer>
+              </blockquote>
+            </div>
+            <div class="card-footer">
+              <small class="text-muted">Last Trade 1 day ago</small>
+            </div>
+          </div>
         </div>
-        <div class="py-2">Price:
-          <t class="trader-price"></t> ETH /
-          <t class="trader-abbr"></t>
-        </div>
-        <div class="py-2 mb-3">My Share:
-          <t class="trader-userShare"></t>
-          <t class="trader-abbr"></t>
-        </div>
-        <blockquote class="mb-0">
-          <p style="opacity:0.5" class="mb-1 trader-description"></p>
-          <footer class="blockquote-footer">
-            <small>
-            <cite title="Source Title" class="trader-name"></cite>
-          </small>
-          </footer>
-        </blockquote>
-      </div>
-      <div class="card-footer">
-        <small class="text-muted">Last Trade 1 day ago</small>
       </div>
     </div>
   </div>

@@ -83,9 +83,10 @@ var createTrader = function(_address) {
 			$(Trader.selectorID + ' .trader-info-img').css(
 				'background-image', 'url("../img/characters/' + Trader.name + '.jpg")'
 			);
-			Trader.updateUI();
+			Trader.initInfo();
 			Trader.UIListener(); // bind UI with listener
 			Trader.eventListener(); // BlockChain event listener
+			Trader.updateUI();
 		},
 
 		updateUI: function() {
@@ -104,6 +105,19 @@ var createTrader = function(_address) {
 
 			// Call global's UI update
 			App.updateUI();
+		},
+
+		initInfo: function() {
+			// Init carousel
+			var s1 = 'trader-info-carousel-' + Trader.address;
+			$(Trader.selectorID + ' .carousel').attr('id', s1);
+			$(Trader.selectorID + ' .carousel-indicators li').attr('data-target', '#' + s1);
+
+			// Init chart
+			var s2 = 'trader-chart-' + Trader.address;
+			$(Trader.selectorID + ' #' + s1 + ' .carousel-inner').append(
+				'<div class="carousel-item" id="' + s2 + '"></div>')
+			drawChart(s2);
 		},
 
 		UIListener: function() {
