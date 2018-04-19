@@ -87,6 +87,8 @@ var App = {
 		$('input[placeholder*="Amount"] + .invalid-tooltip, input[placeholder*="ETH"] + .invalid-tooltip').text('Come on... give me a positive number');
 		// Enable every .myNumber tooltip
 		$('.myNumber').tooltip();
+		// Enable every carousel
+		$('.carousel').carousel();
 	},
 
 	startAsyncing: function() {

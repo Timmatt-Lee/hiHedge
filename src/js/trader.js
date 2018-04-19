@@ -116,7 +116,7 @@ var createTrader = function(_address) {
 			// Init chart
 			var s2 = 'trader-chart-' + Trader.address;
 			$(Trader.selectorID + ' #' + s1 + ' .carousel-inner').append(
-				'<div class="carousel-item" id="' + s2 + '"></div>')
+				'<div class="carousel-item" style="padding: 15px 0px 0px 10px" id="' + s2 + '"></div>')
 			drawChart(s2);
 		},
 
