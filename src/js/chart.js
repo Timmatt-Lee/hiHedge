@@ -1,6 +1,6 @@
 'use strict'
 
-var TraderState = {
+const TraderState = {
 	LONG_COVER: -3,
 	SHORT_IN: -2,
 	SELL: -1,
@@ -9,6 +9,16 @@ var TraderState = {
 	LONG_IN: 2,
 	SHORT_COVER: 3,
 };
+
+// Color
+const pr_clr = '#ffc107';
+const pf_clr = '#099999';
+
+const l_clr = '#28A745'; // Long
+const s_clr = '#DC3545'; // Short
+const o_clr = '#6C757D'; // Offset
+
+const x_cursor_clr = '#099999';
 
 // @param targetID Id selector of which would like to be contain chart
 function drawChart(targetID) {
@@ -22,16 +32,6 @@ function drawChart(targetID) {
 	var ts_pr = zip_list(ts_l, pr_l); // Price list
 	var ts_act = zip_list(ts_l, act_l); // Action(Buy/Sell) list
 
-	// Chart related defination
-	const pr_clr = 'rgba(108, 117, 125, 0.4)';
-	const pf_clr = '#099999';
-
-	const l_clr = '#28a745'; // Long
-	const s_clr = '#dc3545'; // Short
-	const o_clr = '#6c757d'; // Offset
-
-	var x_cursor_clr = 'rgba(9, 153, 153, 0.2)';
-
 	/*
 	 * Economy basic concepts
 	 *
@@ -41,14 +41,8 @@ function drawChart(targetID) {
 	 * you are right; however, it doesn't really matter in later functions, so we don't do so
 	 */
 
-	var tick_agg = 1; // How much minute of tick should be aggregate
-	var group_unit = [
-		['minute', [tick_agg]]
-	]; // Same idea above
-
-	// Very important information aboffset timing of every long, short, offset and earning
-	var actResult = runActEarn(ts_pr, ts_act, 'MXFC8');
-	var ts_pf = actResult[3]; // Time stamp and profit
+	// Very important! Information aboffset timing of every long, short, offset and profit
+	var actResult = runActGetProfit(ts_act, ts_pr, 'MXFC8');
 
 	// Draw chart
 	Highcharts.stockChart(targetID, {
@@ -70,26 +64,30 @@ function drawChart(targetID) {
 			buttons: [{
 					type: 'hour',
 					count: 1,
-					text: '1 hour',
+					text: '1 h',
 				},
 				{
-					// There is only 5 hours for trading each day
-					type: 'hour',
-					count: 5,
-					text: '1 day',
+					type: 'day',
+					count: 1,
+					text: '1 d',
+				},
+				{
+					type: 'day',
+					count: 3,
+					text: '3 d',
+				},
+				{
+					type: 'week',
+					count: 1,
+					text: '1 w',
 				},
 				{
 					type: 'all',
-					// count: 3,
-					text: '5 day',
+					text: 'All',
 				},
 			],
-			buttonTheme: {
-				width: 38
-			},
-			selected: 1, // Default active button index (from 1)
+			selected: 5, // Default active button index (from 1)
 			inputDateFormat: '%Y-%m-%d', // Input is the date time selector input
-			// enabled: false,
 		},
 
 		// Define every chunck's y axis information
@@ -105,6 +103,7 @@ function drawChart(targetID) {
 					style: { color: pr_clr },
 					zIndex: -1,
 					x: 38,
+					y: 3,
 				},
 				title: {
 					align: 'high',
@@ -112,6 +111,7 @@ function drawChart(targetID) {
 					rotation: 0,
 					style: { color: pr_clr },
 					x: -13,
+					y: 3,
 				},
 			},
 			// Profit
@@ -119,16 +119,22 @@ function drawChart(targetID) {
 				height: '85%',
 				gridLineWidth: 1,
 				labels: {
+					format: '<b>{value}</b>',
 					align: "right",
 					style: { color: pf_clr },
-					x: 28
+					useHTML: true,
+					x: 43,
+					y: 2,
 				},
 				title: {
+					text: '<b>Profit</b>',
 					align: 'high',
-					text: 'Profit',
+					useHTML: true,
 					rotation: 0,
+					margin: 0,
 					style: { color: pf_clr },
-					x: -15,
+					x: 8,
+					y: 2,
 				},
 			},
 			// Volume
@@ -139,31 +145,41 @@ function drawChart(targetID) {
 				gridLineWidth: 0,
 				labels: { enabled: false },
 				plotLines: [{ zIndex: 5, value: 0, dashStyle: 'LongDash', color: 'black', width: 1 }],
+				// At least leave space to opposite position when only one-way data displays
+				softMin: -1,
+				softMax: 1,
 			},
 		],
 
 		// Each graph type's setting
 		plotOptions: {
 			flags: {
-				states: {
-					hover: { enabled: false }
-				}
-
+				onSeries: 'txf_chart', // Where to insert this flag (on profit line)
+				yAxis: 0,
+				style: { color: '#ffffff' }, // font color
+				shape: 'circlepin',
+				width: 15,
+				allowOverlapX: true,
+				tooltip: { xDateFormat: '%A, %b %e, %H:%M' } // Fix format
+			},
+			series: {
+				dataGrouping: {
+					// Best density of each data
+					groupPixelWidth: 5,
+					// No matter how narrow scale is, just apply the dataGrouping
+					forced: true,
+					// Only grouped to these units
+					units: [
+						['minute', [1, 2, 3, 4, 5, 10, 15, 30, 60]]
+					],
+				},
 			},
 		},
 
 		tooltip: {
-			split: true,
-			crosshairs: // x cursor
-			{
-				color: x_cursor_clr,
-			},
-			headerFormat: '{point.key}',
-			// tooltip style
-			useHTML: true,
+			crosshairs: { color: Highcharts.Color(x_cursor_clr).setOpacity(0.4).get('rgba') }, // x line
 			borderWidth: 0,
-			shadow: false,
-			style: { padding: 0, }
+			useHTML: true,
 		},
 
 		// Every object corresponding to yAzis settings
@@ -175,22 +191,58 @@ function drawChart(targetID) {
 				name: 'Price',
 				id: 'txf_chart',
 				data: ts_pr,
-				color: pr_clr,
+				color: Highcharts.Color(pr_clr).setOpacity(0.5).get('rgba'),
 				yAxis: 0,
 				zIndex: -1,
-				tooltip: { valueDecimals: 0 },
+				tooltip: {
+					pointFormat: '<span style="color:' + pr_clr + '">●</span>\
+						{series.name}: <b>{point.y:.0f}</b><br/>',
+				},
+				dataGrouping: {
+					approximation: "open", // When needed aggregation, find the extremes
+				},
 			},
 			// Profit
 			{
 				type: 'areaspline',
 				name: 'Profit',
 				id: 'txf_chart',
-				data: ts_pf, // Very important!!! data
+				data: actResult[0], // Very important!!! data
 				lineWidth: 0,
 				color: pf_clr,
 				yAxis: 1, // Binding the index of the objct of yAxis
 				zIndex: -1,
-				tooltip: { valueDecimals: 1 },
+				turboThreshold: Infinity,
+				tooltip: {
+					// valueDecimal: 1,
+					pointFormatter: function() {
+						var tObj = actResult[1];
+						var total = tObj[this.x];
+						if (total == undefined) return;
+						// Ratio compare with the beginning of the visible range
+						var cmp_base;
+						if (!(cmp_base = tObj[this.series.processedXData[0]]))
+							cmp_base = 1;
+						var c = ((total - cmp_base) * 2 / cmp_base);
+						var t = '<span style="color:' + this.color + '">●</span> Profit (from recent): \
+							' + (c > 0 ? '+' : '') + c.toFixed(1) + '%';
+						// Total profit
+						t += '<p style="text-align:right;margin:0">　&nbsp;Total: <b>\
+							' + total.toFixed(1) + ' NTD</b></p>';
+						// Gain or Loss
+						if (this.y > 0)
+							t += '<p style="text-align:right;margin:0;color:' + l_clr + '">▲ \
+									' + this.y.toFixed() + ' NTD</p>';
+						else if (this.y < 0)
+							t += '<p style="text-align:right;margin:0;color:' + s_clr + '">▼ \
+									' + Math.abs(this.y).toFixed() + ' NTD</p>';
+
+						return t;
+					}
+				},
+				dataGrouping: {
+					approximation: "open",
+				},
 				// Gradient color
 				zones: [{
 					// < 0
@@ -200,12 +252,12 @@ function drawChart(targetID) {
 							x1: 0,
 							y1: 1,
 							x2: 0,
-							y2: 0.2
+							y2: 0
 						},
 						stops: [
 							// Gradient-start-color and gradient-end-color
-							[0, 'rgba(0, 0, 0, 0.3)'],
-							[1, 'rgba(9, 153, 153, 0.5)']
+							[0, Highcharts.Color('black').setOpacity(0.5).get('rgba')],
+							[1, Highcharts.Color('black').setOpacity(0.1).get('rgba')]
 						]
 					}
 				}, {
@@ -218,8 +270,8 @@ function drawChart(targetID) {
 							y2: 1
 						},
 						stops: [
-							[0, 'rgba(9, 153, 153, 1)'],
-							[1, 'rgba(9, 153, 153, 0.1)']
+							[0, Highcharts.Color(pf_clr).setOpacity(1).get('rgba')],
+							[1, Highcharts.Color(pf_clr).setOpacity(0.1).get('rgba')]
 						]
 					}
 				}],
@@ -230,13 +282,10 @@ function drawChart(targetID) {
 				type: 'column',
 				name: 'Volume',
 				id: 'vol_chart',
-				data: actResult[4],
+				data: actResult[2],
 				yAxis: 2,
 				zIndex: -2,
-				// Always show the region within max & min
-				getExtremesFromAll: true,
-				// Don't render marginal pixel, for better migrate in large scale
-				crisp: false,
+				// Don't use getExtremesFromAll, CPU will be dead
 				// Zero every padding
 				pointPadding: 0,
 				groupPadding: 0,
@@ -254,51 +303,62 @@ function drawChart(targetID) {
 					color: l_clr
 				}],
 				dataGrouping: {
-					approximation: "close", // How to calculate when aggregation
+					approximation: "close",
 				},
 				tooltip: {
-					pointFormat: '<span style="color:{point.color}">●</span> {point.y} Lot',
+					pointFormatter: function() {
+						var t = '<span style="color:' + this.color + '">●</span> ';
+						if (this.y == 0)
+							t += '<b>No open position</b>';
+						else if (this.y > 0)
+							t += 'Bull position: <b>' + plural(this.y, 'Lot') + '</b>';
+						else
+							t += 'Bear position: <b>' + plural(Math.abs(this.y), 'Lot') + '</b>';
+						return t;
+					}
 				},
 			},
-			// Long
+			// Long flag
 			{
 				type: 'flags',
-				data: actResult[0],
-				onSeries: 'txf_chart', // Where to insert this flag (on profit line)
-				fillColor: l_clr, // bg-color
-				color: l_clr, // border
-				// font color
-				style: { color: '#ffffff' },
-				shape: 'circlepin',
-				width: 15,
-				y: -30,
-				yAxis: 0,
+				data: actResult[3],
+				color: Highcharts.Color(l_clr).setOpacity(0.12).get('rgba'),
+				fillColor: Highcharts.Color(l_clr).setOpacity(0.12).get('rgba'),
+				y: -38,
+				states: {
+					hover: {
+						lineColor: l_clr,
+						fillColor: l_clr,
+					}
+				}
 			},
-			// Short
+			// Short flag
 			{
 				type: 'flags',
-				data: actResult[1],
-				onSeries: 'txf_chart',
-				fillColor: s_clr,
-				color: s_clr,
-				style: { color: '#ffffff' },
-				shape: 'circlepin',
-				width: 15,
-				y: -30,
-				yAxis: 0,
+				data: actResult[4],
+				color: Highcharts.Color(s_clr).setOpacity(0.1).get('rgba'),
+				fillColor: Highcharts.Color(s_clr).setOpacity(0.1).get('rgba'),
+				y: -25,
+				states: {
+					hover: {
+						lineColor: s_clr,
+						fillColor: s_clr,
+					}
+				}
 			},
-			// Offset
+			// Offset flag
 			{
 				type: 'flags',
-				data: actResult[2],
-				onSeries: 'txf_chart',
-				fillColor: o_clr,
-				color: o_clr,
-				style: { color: '#ffffff' },
-				shape: 'circlepin',
-				width: 15,
-				y: 10,
-				yAxis: 0,
+				data: actResult[5],
+				color: Highcharts.Color(o_clr).setOpacity(0.13).get('rgba'),
+				fillColor: Highcharts.Color(o_clr).setOpacity(0.13).get('rgba'),
+				y: 15,
+				states: {
+					hover: {
+						lineColor: o_clr,
+						fillColor: o_clr,
+					}
+				}
 			}
 		],
 	});
@@ -306,20 +366,16 @@ function drawChart(targetID) {
 
 
 /*
- * Find the earning of long, short position and offset
+ * Find the profit of long, short position and offset
  *
  * @param ts_pr Price with Time stamp
  * @param ts_act Action with Time stamp
- * @return [long_list, short_list, o_list, ts_earn, ts_vl]
+ * @return [ts_pf, ts_vl, ts_Lflag,ts_Sflag, ts_Oflag]
  */
-function runActEarn(ts_pr, ts_act, _actual) {
+function runActGetProfit(ts_act, ts_pr, _actual) {
 	var long_trade_num = 0; // Count of long position
 	var short_trade_num = 0; // Count of short position
-	var win_trade_num = 0; // Count of earning money
-
-	const l_clr = '#28a745'; // Long
-	const s_clr = '#dc3545'; // Short
-	const o_clr = '#6c757d'; // Offset
+	var win_trade_num = 0; // Count of profit money
 
 	const TRADE_FEE = 0.6; // Unit is point
 	const TAX_RATE = 0.0; // Transfer to TRADE_FEE, actual value is 0.00002
@@ -338,14 +394,15 @@ function runActEarn(ts_pr, ts_act, _actual) {
 		POINT = 50;
 
 	var ts_list = [];
-	var long_list = [];
-	var short_list = [];
-	var o_list = [];
-	var ts_earn = [];
+	var ts_Lflag = [];
+	var ts_Sflag = [];
+	var ts_Oflag = [];
+	var ts_pf = [];
+	var ts_tt = {}; // Total profit, for profit graph's tooltip data
 	var ts_vl = [];
 
-	var unreal_earn = 0; // Before offset, the balance binds with future
-	var real_earn = 0; // The actual earning after offset
+	var unreal_pf = 0; // Before offset, the balance binds with future
+	var real_pf = 0; // The actual profit after offset
 	var in_price = 0; // average price when long or short
 	var in_pos = 0; // If expect long in_pos > 0, else if short < 0
 
@@ -353,17 +410,16 @@ function runActEarn(ts_pr, ts_act, _actual) {
 	function create_act_dict(s, t, p, v) {
 		var ls_msg, act;
 		if (s === TraderState.LONG_IN) {
-			ls_msg = '<span style="color:' + l_clr + '">Long</span><br>';
+			ls_msg = '<b><span style="color:' + l_clr + '">Long ' + plural(v, 'Lot') + '</span></b>';
 			act = 'L';
 		} else if (s === TraderState.SHORT_IN) {
-			ls_msg = '<span style="color:' + s_clr + '">Short</span><br>';
+			ls_msg = '<b><span style="color:' + s_clr + '">Short ' + plural(v, 'Lot') + '</span></b>';
 			act = 'S';
 		} else if (s === TraderState.SHORT_COVER || s === TraderState.LONG_COVER) {
-			ls_msg = '<span style="color:' + o_clr + '">Offset</span><br>';
+			ls_msg = '<b><span style="color:' + o_clr + '">Offset ' + plural(v, 'Lot') + '</span></b>';
 			act = 'O';
 		}
-		var hhmm = formatTime(t, ":");
-		var act_msg = ls_msg + 'Price ' + p + '<br>Volume ' + v;
+		var act_msg = ls_msg + '　<span style="color:#aaaaaa">( ' + p + 'pt )</span>';
 		return { x: t, title: act, text: act_msg };
 	}
 
@@ -372,7 +428,7 @@ function runActEarn(ts_pr, ts_act, _actual) {
 		return (TRADE_FEE + tax) * Math.abs(in_pos);
 	}
 
-	function cal_earn(now_price, in_price, in_pos) {
+	function cal_pf(now_price, in_price, in_pos) {
 		var p_del = (now_price - in_price);
 		return p_del * POINT * in_pos - cal_cost(now_price, in_pos);
 	}
@@ -384,38 +440,38 @@ function runActEarn(ts_pr, ts_act, _actual) {
 		var this_ymd = formatYMD(now_ts, "-");
 		var now_price = ts_pr[i][1];
 		var act = ts_act[i][1];
-
-		// Super important! calculate unreal earn every step no matter what
-		unreal_earn = cal_earn(now_price, in_price, in_pos);
+		var pre_pf = real_pf + unreal_pf;
+		// Super important! calculate unreal profit every step no matter what
+		unreal_pf = cal_pf(now_price, in_price, in_pos);
 
 		if (act > 0) { // Buy
 			if (act + in_pos > 0) // Long position after buying
 			{
 				if (in_pos < 0) { // If it used to short position, short cover
-					real_earn += cal_earn(now_price, in_price, in_pos);
-					o_list.push(create_act_dict(TraderState.SHORT_COVER, now_ts, now_price, -in_pos));
+					real_pf += cal_pf(now_price, in_price, in_pos);
+					ts_Oflag.push(create_act_dict(TraderState.SHORT_COVER, now_ts, now_price, -in_pos));
 					act += in_pos;
 					in_pos = 0;
 				}
 				if (in_pos == 0)
-					long_list.push(create_act_dict(TraderState.LONG_IN, now_ts, now_price, act));
+					ts_Lflag.push(create_act_dict(TraderState.LONG_IN, now_ts, now_price, act));
 
 				in_price = now_price;
 				in_pos += act;
-				unreal_earn = 0;
-				real_earn -= cal_cost(now_price, in_pos);
+				unreal_pf = 0;
+				real_pf -= cal_cost(now_price, in_pos);
 
 			} else if (act + in_pos < 0) // Still short position after buying
 			{
 				in_price = now_price;
 				in_pos += act;
-				unreal_earn = 0;
-				real_earn -= cal_cost(now_price, in_pos);
+				unreal_pf = 0;
+				real_pf -= cal_cost(now_price, in_pos);
 
 			} else // act + in_pos == 0, short cover after buying
 			{
-				real_earn += cal_earn(now_price, in_price, in_pos);
-				o_list.push(create_act_dict(TraderState.SHORT_COVER, now_ts, now_price, act));
+				real_pf += cal_pf(now_price, in_price, in_pos);
+				ts_Oflag.push(create_act_dict(TraderState.SHORT_COVER, now_ts, now_price, act));
 				in_pos = 0;
 			}
 
@@ -423,107 +479,39 @@ function runActEarn(ts_pr, ts_act, _actual) {
 			if (act + in_pos < 0) // Short position after selling
 			{
 				if (in_pos > 0) { // If it used to long position, long cover
-					real_earn += cal_earn(now_price, in_price, in_pos);
-					o_list.push(create_act_dict(TraderState.LONG_COVER, now_ts, now_price, in_pos));
+					real_pf += cal_pf(now_price, in_price, in_pos);
+					ts_Oflag.push(create_act_dict(TraderState.LONG_COVER, now_ts, now_price, in_pos));
 					act += in_pos;
 					in_pos = 0;
 				}
 				if (in_pos == 0)
-					short_list.push(create_act_dict(TraderState.SHORT_IN, now_ts, now_price, -act));
+					ts_Sflag.push(create_act_dict(TraderState.SHORT_IN, now_ts, now_price, -act));
 
 				in_price = now_price;
 				in_pos += act;
-				unreal_earn = 0;
-				real_earn -= cal_cost(now_price, in_pos);
+				unreal_pf = 0;
+				real_pf -= cal_cost(now_price, in_pos);
 
 			} else if (act + in_pos > 0) // Still long position after selling
 			{
 				in_price = now_price;
 				in_pos += act;
-				unreal_earn = 0;
-				real_earn -= cal_cost(now_price, in_pos);
+				unreal_pf = 0;
+				real_pf -= cal_cost(now_price, in_pos);
 
 			} else // act + in_pos == 0, long cover after selling
 			{
-				real_earn += cal_earn(now_price, in_price, in_pos);
-				o_list.push(create_act_dict(TraderState.LONG_COVER, now_ts, now_price, -act));
+				real_pf += cal_pf(now_price, in_price, in_pos);
+				ts_Oflag.push(create_act_dict(TraderState.LONG_COVER, now_ts, now_price, -act));
 				in_pos = 0;
 			}
 		}
-
+		ts_tt[now_ts] = real_pf + unreal_pf;
 		// Blue line, means the total balance
-		ts_earn.push([now_ts, real_earn + unreal_earn]);
+		ts_pf.push({ x: now_ts, y: real_pf + unreal_pf - pre_pf, name: "TTTTT" });
 		// Volume column
 		ts_vl.push([now_ts, in_pos]);
 	}
 	// return
-	return [long_list, short_list, o_list, ts_earn, ts_vl];
-}
-
-function zip_list(l1, l2) {
-	var l12 = l1.map(function(e, i) {
-		return [e, l2[i]]
-	});
-	return l12;
-}
-
-function y4m2d2_hhmmss_2ts(y4m2d2, hhmmss) {
-	var tz = '+00:00'; // set 00:00 or system will change ts by local timezone.
-	var year = y4m2d2.slice(0, 4);
-	var month = y4m2d2.slice(4, 6);
-	var day = y4m2d2.slice(6, 8);
-
-	var hr = hhmmss.slice(0, 2);
-	var mn = hhmmss.slice(2, 4);
-	var sc = hhmmss.slice(4, 6);
-
-	var date_str = year + "-" + month + "-" + day + "T" + hr + ":" + mn + ":" + sc + tz;
-	var dt = new Date(date_str);
-	return dt.getTime();
-}
-
-
-function formatYMD(timestamp_in_ms, slicer) {
-	var offset = new Date().getTimezoneOffset();
-	var dt_offset = offset * 60 * 1000;
-	var dt = new Date(timestamp_in_ms + dt_offset);
-
-	var y = dt.getFullYear();
-	var m = dt.getMonth() + 1;
-	var d = dt.getDate();
-
-	// the above dt.get...() functions return a single digit
-	// so I prepend the zero here when needed
-	if (m < 10) {
-		m = '0' + m;
-	}
-	if (d < 10) {
-		d = '0' + d;
-	}
-	return y + slicer + m + slicer + d;
-}
-
-
-function formatTime(timestamp_in_ms, slicer) {
-	var offset = new Date().getTimezoneOffset();
-	var dt_offset = offset * 60 * 1000;
-	var dt = new Date(timestamp_in_ms + dt_offset);
-
-	var hours = dt.getHours();
-	var minutes = dt.getMinutes();
-	// var seconds = dt.getSeconds();
-
-	// the above dt.get...() functions return a single digit
-	// so I prepend the zero here when needed
-	if (hours < 10)
-		hours = '0' + hours;
-
-	if (minutes < 10)
-		minutes = '0' + minutes;
-	return hours + slicer + minutes;
-}
-
-function round(v, deci) {
-	var x = Math.pow(10, deci);
-	return Math.round(v * x) / x;
+	return [ts_pf, ts_tt, ts_vl, ts_Lflag, ts_Sflag, ts_Oflag];
 }
