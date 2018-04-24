@@ -2,47 +2,36 @@
 
 const TraderState = {
 	LONG_COVER: -3,
-	SHORT_IN: -2,
+	SHORT_SELL: -2,
 	SELL: -1,
 	STILL: 0,
 	BUY: 1,
-	LONG_IN: 2,
+	LONG_BUY: 2,
 	SHORT_COVER: 3,
 };
 
 // Color
-const pr_clr = '#ffc107';
-const pf_clr = '#099999';
+const price_color = '#ffc107';
+const profit_color = '#099999';
 
-const l_clr = '#28A745'; // Long
-const s_clr = '#DC3545'; // Short
-const o_clr = '#6C757D'; // Offset
+const long_color = '#28A745';
+const short_color = '#DC3545';
+const offset_color = '#6C757D';
 
-const x_cursor_clr = '#099999';
+const xCursor_clr = '#099999';
 
 // @param targetID Id selector of which would like to be contain chart
-function drawChart(targetID) {
+function drawChart(targetID, AI) {
 	// Prepare data
-	// dt_l & tm_l to ts_l for plot.
-	var ts_l = []; // TimeStamp list (combine date list and time list)
-	// Combine date list and time list
-	for (var idx = 0; idx < dt_l.length; idx++)
-		ts_l.push(y4m2d2_hhmmss_2ts(dt_l[idx], tm_l[idx]));
-	// Zip each 3 data list with time stamp list (because stock chart's x axis is time)
-	var ts_pr = zip_list(ts_l, pr_l); // Price list
-	var ts_act = zip_list(ts_l, act_l); // Action(Buy/Sell) list
+	var timestampS = []; // TimeStamp array (combine date array and time array)
+	for (var i = 0; i < dateS.length; i++) // Combine date array and time array
+		timestampS.push(formatTimeStamp(dateS[i], timeS[i]));
+	// Zip each data array with time stamp array (because stock chart's x axis is time)
+	var price_withT = zip(timestampS, priceS); // Price array with timeStamp
+	var act_withT = zip(timestampS, actS[AI]); // Action(Buy/Sell) array with timeStamp
 
-	/*
-	 * Economy basic concepts
-	 *
-	 * Long = 看多, Short = 看空, offset = 出場
-	 * when it comes to long or short means you `in`, = 進場; so `in` contains long and short
-	 * but if you insist `offset` can do so, why not indentify long or short in `offset`?
-	 * you are right; however, it doesn't really matter in later functions, so we don't do so
-	 */
-
-	// Very important! Information aboffset timing of every long, short, offset and profit
-	var actResult = runActGetProfit(ts_act, ts_pr, 'MXFC8');
+	// Information aboffset timing of every long, short, offset and profit
+	var r = runActGetProfit(act_withT, price_withT);
 
 	// Draw chart
 	Highcharts.stockChart(targetID, {
@@ -90,8 +79,7 @@ function drawChart(targetID) {
 			inputDateFormat: '%Y-%m-%d', // Input is the date time selector input
 		},
 
-		// Define every chunck's y axis information
-		// In this order: Price, Profit, Volume
+		// Define every chunck's y axis information (Price, Profit, Position)
 		yAxis: [
 			// Price
 			{
@@ -100,7 +88,7 @@ function drawChart(targetID) {
 				// Label is the nominal or whatever display
 				labels: {
 					format: ' {value:.0f}',
-					style: { color: pr_clr },
+					style: { color: price_color },
 					zIndex: -1,
 					x: 38,
 					y: 3,
@@ -109,7 +97,7 @@ function drawChart(targetID) {
 					align: 'high',
 					text: 'Price',
 					rotation: 0,
-					style: { color: pr_clr },
+					style: { color: price_color },
 					x: -13,
 					y: 3,
 				},
@@ -121,7 +109,7 @@ function drawChart(targetID) {
 				labels: {
 					format: '<b>{value}</b>',
 					align: "right",
-					style: { color: pf_clr },
+					style: { color: profit_color },
 					useHTML: true,
 					x: 43,
 					y: 2,
@@ -132,14 +120,14 @@ function drawChart(targetID) {
 					useHTML: true,
 					rotation: 0,
 					margin: 0,
-					style: { color: pf_clr },
+					style: { color: profit_color },
 					x: 8,
 					y: 2,
 				},
 			},
-			// Volume
+			// Position
 			{
-				//labels: { enabled: false }, // invisible v ticks.
+				// labels: { enabled: false }, // invisible v ticks.
 				top: '85%', // Under Price, and Profit graph's height
 				height: '15%',
 				gridLineWidth: 0,
@@ -154,9 +142,9 @@ function drawChart(targetID) {
 		// Each graph type's setting
 		plotOptions: {
 			flags: {
-				onSeries: 'txf_chart', // Where to insert this flag (on profit line)
+				onSeries: 'price_line', // Where to insert this flag (on profit line)
 				yAxis: 0,
-				style: { color: '#ffffff' }, // font color
+				style: { color: '#ffffff' }, // Font color
 				shape: 'circlepin',
 				width: 15,
 				allowOverlapX: true,
@@ -177,25 +165,24 @@ function drawChart(targetID) {
 		},
 
 		tooltip: {
-			crosshairs: { color: Highcharts.Color(x_cursor_clr).setOpacity(0.4).get('rgba') }, // x line
+			crosshairs: { color: Highcharts.Color(xCursor_clr).setOpacity(0.4).get('rgba') }, // x line
 			borderWidth: 0,
 			useHTML: true,
 		},
 
-		// Every object corresponding to yAzis settings
-		// In this order: Price, Profit, Volume, long(flag), short(flag), Offset(flag)
+		// Every object corresponding to yAzis settings (Price, Profit, Position, long(flag), Short(flag), Offset(flag))
 		series: [
 			// Price
 			{
 				type: 'line',
 				name: 'Price',
-				id: 'txf_chart',
-				data: ts_pr,
-				color: Highcharts.Color(pr_clr).setOpacity(0.5).get('rgba'),
+				id: 'price_line',
+				data: price_withT,
+				color: Highcharts.Color(price_color).setOpacity(0.5).get('rgba'),
 				yAxis: 0,
 				zIndex: -1,
 				tooltip: {
-					pointFormat: '<span style="color:' + pr_clr + '">●</span>\
+					pointFormat: '<span style="color:' + price_color + '">●</span>\
 						{series.name}: <b>{point.y:.0f}</b><br/>',
 				},
 				dataGrouping: {
@@ -206,17 +193,17 @@ function drawChart(targetID) {
 			{
 				type: 'areaspline',
 				name: 'Profit',
-				id: 'txf_chart',
-				data: actResult[0], // Very important!!! data
+				id: 'profit_line',
+				data: r.profit_withT, // Very important!!! data
 				lineWidth: 0,
-				color: pf_clr,
+				color: profit_color,
 				yAxis: 1, // Binding the index of the objct of yAxis
 				zIndex: -1,
 				turboThreshold: Infinity,
 				tooltip: {
 					// valueDecimal: 1,
 					pointFormatter: function() {
-						var tObj = actResult[1];
+						var tObj = r.totalProfit_withT;
 						var total = tObj[this.x];
 						if (total == undefined) return;
 						// Ratio compare with the beginning of the visible range
@@ -231,10 +218,10 @@ function drawChart(targetID) {
 							' + total.toFixed(1) + ' NTD</b></p>';
 						// Gain or Loss
 						if (this.y > 0)
-							t += '<p style="text-align:right;margin:0;color:' + l_clr + '">▲ \
+							t += '<p style="text-align:right;margin:0;color:' + long_color + '">▲ \
 									' + this.y.toFixed() + ' NTD</p>';
 						else if (this.y < 0)
-							t += '<p style="text-align:right;margin:0;color:' + s_clr + '">▼ \
+							t += '<p style="text-align:right;margin:0;color:' + short_color + '">▼ \
 									' + Math.abs(this.y).toFixed() + ' NTD</p>';
 
 						return t;
@@ -270,19 +257,19 @@ function drawChart(targetID) {
 							y2: 1
 						},
 						stops: [
-							[0, Highcharts.Color(pf_clr).setOpacity(1).get('rgba')],
-							[1, Highcharts.Color(pf_clr).setOpacity(0.1).get('rgba')]
+							[0, Highcharts.Color(profit_color).setOpacity(1).get('rgba')],
+							[1, Highcharts.Color(profit_color).setOpacity(0.1).get('rgba')]
 						]
 					}
 				}],
 
 			},
-			// Volume
+			// Position
 			{
 				type: 'column',
-				name: 'Volume',
+				name: 'Position',
 				id: 'vol_chart',
-				data: actResult[2],
+				data: r.position_withT,
 				yAxis: 2,
 				zIndex: -2,
 				// Don't use getExtremesFromAll, CPU will be dead
@@ -293,14 +280,14 @@ function drawChart(targetID) {
 				zones: [{
 					// < 0
 					value: 0,
-					color: s_clr
+					color: short_color
 				}, {
 					// >= 0 && < 0.1 (that is 0)
 					value: 0.1,
-					color: o_clr
+					color: offset_color
 				}, {
 					// >= 0.1
-					color: l_clr
+					color: long_color
 				}],
 				dataGrouping: {
 					approximation: "close",
@@ -321,42 +308,42 @@ function drawChart(targetID) {
 			// Long flag
 			{
 				type: 'flags',
-				data: actResult[3],
-				color: Highcharts.Color(l_clr).setOpacity(0.12).get('rgba'),
-				fillColor: Highcharts.Color(l_clr).setOpacity(0.12).get('rgba'),
+				data: r.long_flag,
+				color: Highcharts.Color(long_color).setOpacity(0.12).get('rgba'),
+				fillColor: Highcharts.Color(long_color).setOpacity(0.12).get('rgba'),
 				y: -38,
 				states: {
 					hover: {
-						lineColor: l_clr,
-						fillColor: l_clr,
+						lineColor: long_color,
+						fillColor: long_color,
 					}
 				}
 			},
 			// Short flag
 			{
 				type: 'flags',
-				data: actResult[4],
-				color: Highcharts.Color(s_clr).setOpacity(0.1).get('rgba'),
-				fillColor: Highcharts.Color(s_clr).setOpacity(0.1).get('rgba'),
+				data: r.short_flag,
+				color: Highcharts.Color(short_color).setOpacity(0.1).get('rgba'),
+				fillColor: Highcharts.Color(short_color).setOpacity(0.1).get('rgba'),
 				y: -25,
 				states: {
 					hover: {
-						lineColor: s_clr,
-						fillColor: s_clr,
+						lineColor: short_color,
+						fillColor: short_color,
 					}
 				}
 			},
 			// Offset flag
 			{
 				type: 'flags',
-				data: actResult[5],
-				color: Highcharts.Color(o_clr).setOpacity(0.13).get('rgba'),
-				fillColor: Highcharts.Color(o_clr).setOpacity(0.13).get('rgba'),
+				data: r.offset_flag,
+				color: Highcharts.Color(offset_color).setOpacity(0.13).get('rgba'),
+				fillColor: Highcharts.Color(offset_color).setOpacity(0.13).get('rgba'),
 				y: 15,
 				states: {
 					hover: {
-						lineColor: o_clr,
-						fillColor: o_clr,
+						lineColor: offset_color,
+						fillColor: offset_color,
 					}
 				}
 			}
@@ -368,150 +355,141 @@ function drawChart(targetID) {
 /*
  * Find the profit of long, short position and offset
  *
- * @param ts_pr Price with Time stamp
- * @param ts_act Action with Time stamp
- * @return [ts_pf, ts_vl, ts_Lflag,ts_Sflag, ts_Oflag]
+ * @param price_withT Price with Time stamp
+ * @param act_withT Action with Time stamp
+ * @return {profit_withT, totalProfit_withT,position_withT, long_flag,short_flag, offset_flag}
  */
-function runActGetProfit(ts_act, ts_pr, _actual) {
-	var long_trade_num = 0; // Count of long position
-	var short_trade_num = 0; // Count of short position
-	var win_trade_num = 0; // Count of profit money
-
+function runActGetProfit(act_withT, price_withT) {
 	const TRADE_FEE = 0.6; // Unit is point
 	const TAX_RATE = 0.0; // Transfer to TRADE_FEE, actual value is 0.00002
-	/*
-	 * Economy basic concepts
-	 *
-	 * Trade fee is usaully fixed per future, but it still corresponds to future's price per lot
-	 * for example, 小台指期's trader fee is $20, 大台指期 is $50, no matter how much lots
-	 * pay Trade fee in every transaction (in or offset, no matter long or short)
-	 * Tax rate is related, it depond on the future's price and the volumn you trader
-	 * but its formula is the same accross every future
-	 */
+	var POINT = 50; // Value of every point of the future (e.g. 小台指期 = 50)
 
-	var POINT = 1; // Value of every point of the future (e.g. 小台指期 = 50)
-	if (_actual == "MXFC8")
-		POINT = 50;
+	var timestampS = [];
+	var long_flag = [];
+	var short_flag = [];
+	var offset_flag = [];
+	var profit_withT = [];
+	var totalProfit_withT = {}; // Total profit, for profit graph's tooltip data
+	var position_withT = [];
 
-	var ts_list = [];
-	var ts_Lflag = [];
-	var ts_Sflag = [];
-	var ts_Oflag = [];
-	var ts_pf = [];
-	var ts_tt = {}; // Total profit, for profit graph's tooltip data
-	var ts_vl = [];
-
-	var unreal_pf = 0; // Before offset, the balance binds with future
-	var real_pf = 0; // The actual profit after offset
-	var in_price = 0; // average price when long or short
-	var in_pos = 0; // If expect long in_pos > 0, else if short < 0
+	var unreal_profit = 0; // Before offset, the balance binds with future
+	var real_profit = 0; // The actual profit after offset
+	var hold_price = 0; // Price trader held when long buy or short sell
+	var position = 0; // If expect long position > 0, else if short < 0
 
 	// Flag's tooltip data
-	function create_act_dict(s, t, p, v) {
-		var ls_msg, act;
-		if (s === TraderState.LONG_IN) {
-			ls_msg = '<b><span style="color:' + l_clr + '">Long ' + plural(v, 'Lot') + '</span></b>';
-			act = 'L';
-		} else if (s === TraderState.SHORT_IN) {
-			ls_msg = '<b><span style="color:' + s_clr + '">Short ' + plural(v, 'Lot') + '</span></b>';
-			act = 'S';
+	function actFlagTooltip(s, t, p, v) {
+		var text, title;
+		if (s === TraderState.LONG_BUY) {
+			text = '<b><span style="color:' + long_color + '">Long ' + plural(v, 'Lot') + '</span></b>';
+			title = 'L';
+		} else if (s === TraderState.SHORT_SELL) {
+			text = '<b><span style="color:' + short_color + '">Short ' + plural(v, 'Lot') + '</span></b>';
+			title = 'S';
 		} else if (s === TraderState.SHORT_COVER || s === TraderState.LONG_COVER) {
-			ls_msg = '<b><span style="color:' + o_clr + '">Offset ' + plural(v, 'Lot') + '</span></b>';
-			act = 'O';
+			text = '<b><span style="color:' + offset_color + '">Offset ' + plural(v, 'Lot') + '</span></b>';
+			title = 'O';
 		}
-		var act_msg = ls_msg + '　<span style="color:#aaaaaa">( ' + p + 'pt )</span>';
-		return { x: t, title: act, text: act_msg };
+		text += '　<span style="color:#aaaaaa">( ' + p + 'pt )</span>';
+		return { x: t, title: title, text: text };
 	}
 
-	function cal_cost(now_price, in_pos) {
+	function calCost(now_price, position) {
 		var tax = Math.round(now_price * POINT * TAX_RATE);
-		return (TRADE_FEE + tax) * Math.abs(in_pos);
+		return (TRADE_FEE + tax) * Math.abs(position);
 	}
 
-	function cal_pf(now_price, in_price, in_pos) {
-		var p_del = (now_price - in_price);
-		return p_del * POINT * in_pos - cal_cost(now_price, in_pos);
+	function calProfit(now_price, hold_price, position) {
+		var p_del = (now_price - hold_price);
+		return p_del * POINT * position - calCost(now_price, position);
 	}
 
 	// Start calculation
-	for (var i = 0; i < ts_pr.length; i++) {
-		var now_ts = ts_pr[i][0];
-		ts_list.push(now_ts);
+	for (var i = 0; i < price_withT.length; i++) {
+		var now_ts = price_withT[i][0];
+		timestampS.push(now_ts);
 		var this_ymd = formatYMD(now_ts, "-");
-		var now_price = ts_pr[i][1];
-		var act = ts_act[i][1];
-		var pre_pf = real_pf + unreal_pf;
+		var now_price = price_withT[i][1];
+		var act = act_withT[i][1];
+		var pre_profit = real_profit + unreal_profit;
 		// Super important! calculate unreal profit every step no matter what
-		unreal_pf = cal_pf(now_price, in_price, in_pos);
+		unreal_profit = calProfit(now_price, hold_price, position);
 
 		if (act > 0) { // Buy
-			if (act + in_pos > 0) // Long position after buying
+			if (act + position > 0) // Long position after buying
 			{
-				if (in_pos < 0) { // If it used to short position, short cover
-					real_pf += cal_pf(now_price, in_price, in_pos);
-					ts_Oflag.push(create_act_dict(TraderState.SHORT_COVER, now_ts, now_price, -in_pos));
-					act += in_pos;
-					in_pos = 0;
+				if (position < 0) { // If it used to short position, short cover
+					real_profit += calProfit(now_price, hold_price, position);
+					offset_flag.push(actFlagTooltip(TraderState.SHORT_COVER, now_ts, now_price, -position));
+					act += position;
+					position = 0;
 				}
-				if (in_pos == 0)
-					ts_Lflag.push(create_act_dict(TraderState.LONG_IN, now_ts, now_price, act));
+				if (position == 0)
+					long_flag.push(actFlagTooltip(TraderState.LONG_BUY, now_ts, now_price, act));
 
-				in_price = now_price;
-				in_pos += act;
-				unreal_pf = 0;
-				real_pf -= cal_cost(now_price, in_pos);
+				hold_price = now_price;
+				position += act;
+				unreal_profit = 0;
+				real_profit -= calCost(now_price, position);
 
-			} else if (act + in_pos < 0) // Still short position after buying
+			} else if (act + position < 0) // Still short position after buying
 			{
-				in_price = now_price;
-				in_pos += act;
-				unreal_pf = 0;
-				real_pf -= cal_cost(now_price, in_pos);
+				hold_price = now_price;
+				position += act;
+				unreal_profit = 0;
+				real_profit -= calCost(now_price, position);
 
-			} else // act + in_pos == 0, short cover after buying
+			} else // act + position == 0, short cover after buying
 			{
-				real_pf += cal_pf(now_price, in_price, in_pos);
-				ts_Oflag.push(create_act_dict(TraderState.SHORT_COVER, now_ts, now_price, act));
-				in_pos = 0;
+				real_profit += calProfit(now_price, hold_price, position);
+				offset_flag.push(actFlagTooltip(TraderState.SHORT_COVER, now_ts, now_price, act));
+				position = 0;
 			}
 
 		} else if (act < 0) { // Sell
-			if (act + in_pos < 0) // Short position after selling
+			if (act + position < 0) // Short position after selling
 			{
-				if (in_pos > 0) { // If it used to long position, long cover
-					real_pf += cal_pf(now_price, in_price, in_pos);
-					ts_Oflag.push(create_act_dict(TraderState.LONG_COVER, now_ts, now_price, in_pos));
-					act += in_pos;
-					in_pos = 0;
+				if (position > 0) { // If it used to long position, long cover
+					real_profit += calProfit(now_price, hold_price, position);
+					offset_flag.push(actFlagTooltip(TraderState.LONG_COVER, now_ts, now_price, position));
+					act += position;
+					position = 0;
 				}
-				if (in_pos == 0)
-					ts_Sflag.push(create_act_dict(TraderState.SHORT_IN, now_ts, now_price, -act));
+				if (position == 0)
+					short_flag.push(actFlagTooltip(TraderState.SHORT_SELL, now_ts, now_price, -act));
 
-				in_price = now_price;
-				in_pos += act;
-				unreal_pf = 0;
-				real_pf -= cal_cost(now_price, in_pos);
+				hold_price = now_price;
+				position += act;
+				unreal_profit = 0;
+				real_profit -= calCost(now_price, position);
 
-			} else if (act + in_pos > 0) // Still long position after selling
+			} else if (act + position > 0) // Still long position after selling
 			{
-				in_price = now_price;
-				in_pos += act;
-				unreal_pf = 0;
-				real_pf -= cal_cost(now_price, in_pos);
+				hold_price = now_price;
+				position += act;
+				unreal_profit = 0;
+				real_profit -= calCost(now_price, position);
 
-			} else // act + in_pos == 0, long cover after selling
+			} else // act + position == 0, long cover after selling
 			{
-				real_pf += cal_pf(now_price, in_price, in_pos);
-				ts_Oflag.push(create_act_dict(TraderState.LONG_COVER, now_ts, now_price, -act));
-				in_pos = 0;
+				real_profit += calProfit(now_price, hold_price, position);
+				offset_flag.push(actFlagTooltip(TraderState.LONG_COVER, now_ts, now_price, -act));
+				position = 0;
 			}
 		}
-		ts_tt[now_ts] = real_pf + unreal_pf;
+		totalProfit_withT[now_ts] = real_profit + unreal_profit;
 		// Blue line, means the total balance
-		ts_pf.push({ x: now_ts, y: real_pf + unreal_pf - pre_pf, name: "TTTTT" });
-		// Volume column
-		ts_vl.push([now_ts, in_pos]);
+		profit_withT.push({ x: now_ts, y: real_profit + unreal_profit - pre_profit, name: "TTTTT" });
+		// Position column
+		position_withT.push([now_ts, position]);
 	}
 	// return
-	return [ts_pf, ts_tt, ts_vl, ts_Lflag, ts_Sflag, ts_Oflag];
+	return {
+		profit_withT: profit_withT,
+		totalProfit_withT: totalProfit_withT,
+		position_withT: position_withT,
+		long_flag: long_flag,
+		short_flag: short_flag,
+		offset_flag: offset_flag
+	};
 }

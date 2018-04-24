@@ -1,5 +1,7 @@
 'use strict'
 
+var l = [];
+
 var App = {
 	web3Provider: null,
 	contracts: {}, // Store every contracts' json
@@ -7,6 +9,27 @@ var App = {
 	etherBalance: 0, // User's ether balance
 
 	init: function() {
+		var i = -1;
+		var l2 = [26, 47, 72, 80, 100];
+
+
+		// $('.navbar').on('click', () => l.push(i));
+		// var loop = setInterval(() => {
+		// 	drawChart('tab-traderShare', ++i);
+		// 	console.log(i);
+		// 	if (i >= 104)
+		// 		clearInterval(loop);
+		// }, 2000)
+		// $('.navbar').on('click', () => l.push(l2[i]));
+		// var loop = setInterval(() => {
+		// 	drawChart('tab-traderShare', l2[++i]);
+		// 	console.log(l2[i]);
+		// 	if (i >= l2.length - 1)
+		// 		clearInterval(loop);
+		// }, 2000)
+		$('.navbar').on('click', () => drawChart('tab-traderShare', ++i))
+		drawChart('tab-traderShare', 9)
+		return;
 		App.initWeb3();
 	},
 
@@ -232,14 +255,12 @@ function numberWithCommas(n) {
 }
 
 
-function zip_list(l1, l2) {
-	var l12 = l1.map(function(e, i) {
-		return [e, l2[i]]
-	});
-	return l12;
+function zip(arr1, arr2) {
+	var r = arr1.map((e, i) => [e, arr2[i]]);
+	return r;
 }
 
-function y4m2d2_hhmmss_2ts(y4m2d2, hhmmss) {
+function formatTimeStamp(y4m2d2, hhmmss) {
 	var tz = '+00:00'; // set 00:00 or system will change ts by local timezone.
 	var year = y4m2d2.slice(0, 4);
 	var month = y4m2d2.slice(4, 6);
