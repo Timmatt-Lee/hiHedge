@@ -28,7 +28,7 @@ var App = {
 		// 		clearInterval(loop);
 		// }, 2000)
 		$('.navbar').on('click', () => drawChart('tab-traderShare', ++i))
-		drawChart('tab-traderShare', 9)
+		drawChart('tab-traderShare', 0)
 		return;
 		App.initWeb3();
 	},
@@ -276,7 +276,7 @@ function formatTimeStamp(y4m2d2, hhmmss) {
 }
 
 
-function formatYMD(timestamp_in_ms, slicer) {
+function formatYMD(timestamp_in_ms, slicer = '/') {
 	var offset = new Date().getTimezoneOffset();
 	var dt_offset = offset * 60 * 1000;
 	var dt = new Date(timestamp_in_ms + dt_offset);
@@ -297,7 +297,7 @@ function formatYMD(timestamp_in_ms, slicer) {
 }
 
 
-function formatTime(timestamp_in_ms, slicer) {
+function formatTime(timestamp_in_ms, slicer = ':') {
 	var offset = new Date().getTimezoneOffset();
 	var dt_offset = offset * 60 * 1000;
 	var dt = new Date(timestamp_in_ms + dt_offset);
