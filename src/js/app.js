@@ -1,5 +1,15 @@
 'use strict'
 
+// var l_up = [];
+// var l_left = [];
+// var l_right = [];
+// var l_down = []
+
+
+//up
+//[1, 2, 3, 4, 6, 11, 19, 23, 32, 37, 38, 58, 61, 77, 93, 97, 101]
+//[3, 6, 11, 19,23,37, 38,58,61,93]
+
 var App = {
 	web3Provider: null,
 	contracts: {}, // Store every contracts' json
@@ -7,24 +17,28 @@ var App = {
 	etherBalance: 0, // User's ether balance
 
 	init: function() {
+		// 諸葛44,呂布9, 曹操61,0,0最爛，貂蟬103
 		// var i = 0;
-		// var l2 = [3, 15, 25, 98, 101]; 
+		// var l2 = [1, 2, 3, 4, 6, 11, 19, 23, 32, 37, 38, 58, 61, 77, 93, 97, 101]; 
 		//[6, 7, 9, 11, 12, 15, 16, 20, 23, 24, 25, 29, 38, 40, 42, 43, 48, 51, 53, 64, 68, 73, 85, 91]
-		// $('.navbar').on('click', () => l.push(i - 1));
+		// $('#target').on('keydown', (e) => {
+		// 	if (e.keyCode == 38) l_up.push(i - 1);
+		// 	else if (e.keyCode == 40) l_down.push(i - 1);
+		// 	else if (e.keyCode == 39) l_right.push(i - 1);
+		// 	else if (e.keyCode == 37) l_left.push(i - 1);
+		// });
 		// var loop = setInterval(() => {
 		// 	drawChart('tab-traderShare', i++);
 		// 	console.log(i - 1);
 		// 	if (i == 105)
 		// 		clearInterval(loop);
 		// }, 2000)
-		// $('.navbar').on('click', () => l.push(l2[i - 1]));
 		// var loop = setInterval(() => {
 		// 	drawChart('tab-traderShare', l2[i++]);
 		// 	console.log(l2[i - 1]);
 		// 	if (i == l2.length)
 		// 		clearInterval(loop);
 		// }, 2000)
-		// $('.navbar').on('click', () => drawChart('tab-traderShare', ++i))
 		// drawChart('tab-traderShare', 0)
 		// return;
 		App.initWeb3();

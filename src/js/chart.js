@@ -47,14 +47,17 @@ function drawChart(targetID, records) {
 			margin: [0, 90, 10, 10],
 			events: {
 				load: function() {
-
-					// set up the updating of the chart each second
 					var series = this.series;
-					setInterval(function() {
-						var x = (new Date()).getTime(), // current time
-							y = Math.round(10000 + Math.random() * 100);
-						series[0].addPoint([x, y], true, true);
-					}, 60 * 1000);
+					setInterval(() => $.ajax({
+						method: "GET",
+						url: "/price",
+						dataType: 'json',
+						success: (data) => {
+							if (data == null) return;
+							var x = (new Date()).getTime();
+							series[0].addPoint([x, data], true, true);
+						},
+					}), 1000);
 				}
 			}
 		},
@@ -68,24 +71,24 @@ function drawChart(targetID, records) {
 		rangeSelector: {
 			// Style of range selector button
 			buttons: [{
+					type: 'minute',
+					count: 1,
+					text: '1 m',
+				},
+				{
+					type: 'minute',
+					count: 10,
+					text: '10 m',
+				},
+				{
 					type: 'hour',
 					count: 1,
 					text: '1 h',
 				},
 				{
 					type: 'hour',
-					count: 5,
-					text: '1 d',
-				},
-				{
-					type: 'day',
 					count: 3,
-					text: '3 d',
-				},
-				{
-					type: 'day',
-					count: 7,
-					text: '1 w',
+					text: '3 h',
 				},
 				{
 					type: 'all',
@@ -93,7 +96,7 @@ function drawChart(targetID, records) {
 				},
 			],
 			selected: 5, // Default active button index (from 1)
-			inputDateFormat: '%Y-%m-%d', // Input is the date now_time selector input
+			inputDateFormat: '%Y/%m/%d', // Input is the date now_time selector input
 		},
 
 		// Define every chunck's y axis information (Price, Profit, Position)
@@ -165,7 +168,7 @@ function drawChart(targetID, records) {
 				shape: 'circlepin',
 				width: 15,
 				allowOverlapX: true,
-				tooltip: { xDateFormat: '%A, %b %e, %H:%M' }, // Fix format
+				tooltip: { xDateFormat: '%A, %b %e, %H:%M:%S' }, // Fix format
 				lineColor: 'transparent',
 				states: {
 					hover: {
@@ -181,7 +184,8 @@ function drawChart(targetID, records) {
 					forced: true,
 					// Only grouped to these units
 					units: [
-						['minute', [1, 2, 3, 4, 5, 10, 15, 30, 60]]
+						['second', [1, 5, 10, 30]],
+						['minute', [1, 5, 10, 30]]
 					],
 				},
 			},

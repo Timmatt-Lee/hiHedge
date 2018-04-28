@@ -1,8 +1,7 @@
 {
   "name": "hihedge",
-  "version": "1.2.0",
-  "description": "Dapp for AI trading",
-  "main": "app.js",
+  "description": "Social trading to train-on-trust AI",
+  "main": "server.js",
   "scripts": {
     "start": "nodemon --ignore src/"
   },

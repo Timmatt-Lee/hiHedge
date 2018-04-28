@@ -24,7 +24,7 @@ var createTrader = function(_address) {
 			Trader.selectorID = '#tab-trader-' + _address;
 			// Get contract instance
 			return App.contracts.Trader.at(_address)
-				.then((_instance) => { Trader.instance = _instance })
+				.then((_instance) => Trader.instance = _instance)
 				.then(() => Trader.instance.ownerList(1)) // Get registrant
 				.then((_registrant) => Trader.registrant = _registrant)
 				.then(Trader.fetchData) // DataBase
@@ -83,9 +83,9 @@ var createTrader = function(_address) {
 			$(Trader.selectorID + ' .trader-info-img').css(
 				'background-image', 'url("../img/characters/' + Trader.name + '.jpg")'
 			);
+			Trader.eventListener(); // BlockChain event listener
 			Trader.initInfo();
 			Trader.UIListener(); // bind UI with listener
-			Trader.eventListener(); // BlockChain event listener
 			Trader.updateUI();
 		},
 
@@ -117,38 +117,42 @@ var createTrader = function(_address) {
 			var s2 = 'trader-chart-' + Trader.address;
 			$(Trader.selectorID + ' #' + s1 + ' .carousel-inner').append(
 				'<div class="carousel-item" style="padding: 15px 0px 0px 10px" id="' + s2 + '"></div>')
-			drawChart(s2);
+			// Wait for reocrd ready then draw chart
+			setTimeout(() => drawChart(s2, Trader.records), 2000 + Math.random() * 4000);
 		},
 
 		UIListener: function() {
-			// checkValidityMacro()會生成該選擇器下的檢查input是否valid的按鈕
+			// checkValidityMacro() generate listner to check validity input
 			checkValidityMacro(Trader.selectorID + ' #trader-transfer', Trader.transfer);
 			checkValidityMacro(Trader.selectorID + ' #trader-sell', Trader.sell);
 			checkValidityMacro(Trader.selectorID + ' #trader-buy', Trader.buy);
 		},
 
 		eventListener: function() {
-			Trader.instance.records(null, { fromBlock: 0 }, (error, result) => {
+			Trader.instance.records(null, { fromBlock: 0 }, (error, r) => {
 				if (error)
 					return console.error(error);
 
 				// Because blockChain will prevent branch, so if it watchs any new block
 				// it would output previous event; here is to prevent repeated events
-				if (JSON.stringify(result) === JSON.stringify(Trader.records[Trader.records.length - 1]))
+				if (Trader.records.length > 0 && r.args.time.toNumber() == Trader.records[Trader.records.length - 1][0])
 					return;
 
-				Trader.records.push(result);
-				// Record list UI
-				if (Trader.hasDOM)
-					$(Trader.selectorID + ' .trader-record table > tbody').append('\
-						<tr>\
-							<td>' + (new Date(result.args.time.c[0])).toLocaleString() + '</td>\
-							<td>' + result.args.stock + '</td>\
-							<td>' + result.args.price + '</td>\
-							<td>' + result.args.amount + '</td>\
-						</tr>\
-					');
+				Trader.records.push([
+					r.args.time.toNumber(),
+					r.args.stock,
+					r.args.price.toNumber(),
+					r.args.amount.toNumber()
+				]);
 
+				$(Trader.selectorID + ' .trader-record table > tbody').append('\
+					<tr>\
+						<td>' + myDateTime(r.args.time.toNumber()) + '</td>\
+						<td>' + r.args.stock + '</td>\
+						<td>' + r.args.price.toNumber() + '</td>\
+						<td>' + r.args.amount.toNumber() + '</td>\
+					</tr>\
+				');
 			});
 		},
 
