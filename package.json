@@ -16,6 +16,7 @@
     "reloadify": "^0.2.2"
   },
   "dependencies": {
+    "ajax-request": "^1.2.3",
     "express": "^4.16.2",
     "mysql": "^2.15.0",
     "serve-favicon": "^2.4.5"

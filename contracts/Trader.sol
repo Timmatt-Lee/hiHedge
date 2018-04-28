@@ -7,7 +7,7 @@ contract Trader is Owner
     // OwnerList index identifier
     uint8 constant DEPLOYER = 0;
     uint8 constant REGISTRANT = 1;
-    
+
     uint public totalShare;
     uint initPrice;             // Backup price to restore as soon as bankrupt
     uint public price ;         // Price of ether per share
@@ -17,17 +17,15 @@ contract Trader is Owner
 
     address[] public subscriber;// Trader's subscribers
     mapping (address => uint) public shareOf;
-    
+
     event records(uint time, string stock, int price, int amount);
     event appreciation(uint amount);
     event bankrupted();
 
     /*
-     * Constrctor function
-     *
      * Initializes ownerList, basic imformation, and buy `_initFund` for registrant
      */
-    function Trader(
+    constructor(
         address[] _ownerList,
         uint _totalTrader,
         uint _price,
@@ -41,15 +39,15 @@ contract Trader is Owner
         price = initPrice =_price;
         fee = _fee;
         // `splitting` must be devided by 1 ether to be percentage when usage
-        require(_splitting <= 1 ether); 
+        require(_splitting <= 1 ether);
         splitting = _splitting;
-        
+
         // Registrant's initFund (margin = 1 ether)
         require(msg.value >= 1 ether);
         subscriber.push(ownerList[REGISTRANT]);
         _transfer(this, ownerList[REGISTRANT], msg.value / price);
     }
-      
+
     /*
      * Get all subscribers of this share contract in array type
      */
@@ -57,7 +55,7 @@ contract Trader is Owner
     {
         return subscriber;
     }
-    
+
     // Determine whether `a` is a subscriber or not
     function isSubscriber(address a) internal view returns (bool)
     {
@@ -79,7 +77,7 @@ contract Trader is Owner
     {
         _transfer(msg.sender, _to, _amount);
     }
-    
+
     function _transfer(address _from, address _to, uint _amount) internal
     {
         // Prevent transfer to no one.
@@ -93,7 +91,7 @@ contract Trader is Owner
         // Add to the recipient
         shareOf[_to] += _amount;
     }
-    
+
     /*
      * Buy share
      *
@@ -107,7 +105,7 @@ contract Trader is Owner
         amount = (msg.value - (isSubscriber(msg.sender)?0:fee)) / price;
         // Transfer share
         _transfer(this, msg.sender, amount);
-        
+
         // If not subscriber, add buyer to subscription list
         if(!isSubscriber(msg.sender))
         {
@@ -117,7 +115,7 @@ contract Trader is Owner
             ownerList[REGISTRANT].transfer(fee);
         }
     }
-    
+
     /*
      * Sell `_amount` shares to contract
      *
@@ -137,7 +135,7 @@ contract Trader is Owner
         // Make ether transfer at last
         msg.sender.transfer(revenue);
     }
-    
+
     /*
      * @require only registrant can modify
      * @param _fee Subscription fee of ether per subscription
@@ -147,7 +145,7 @@ contract Trader is Owner
         require(_fee != fee);
         fee = _fee;
     }
-    
+
     /*
      * @require only registrant can modify
      * @param _splitting Splitting ratio in respect of share from each benefit
@@ -157,14 +155,14 @@ contract Trader is Owner
         require(_splitting != splitting);
         splitting = _splitting;
     }
-    
+
     // emit a transaction event
     function record(uint _time, string _stock, int _price, int _amount) external onlyOwner(DEPLOYER)
     {
         require(!frozen);
         emit records(_time, _stock, _price, _amount);
     }
-    
+
     /*
      * When trader earned, deployer can deposit ether to raise the price
      * and subscriber can have splitting benifit
@@ -186,13 +184,13 @@ contract Trader is Owner
                 msg.value * shareOf[subscriber[i]] * splitting / 1 ether / (totalShare-shareOf[this])
             );
     }
-    
+
     /*
      * When trader lost, deployer can withdraw `_value` ether to depreciate the price
      * and as soon as total shares' value lower than margin, trader bankrupts
      *
      * @require only deployer can call
-     * @param _value Value of ether that the 
+     * @param _value Value of ether that the
      */
     function depreciate(uint _value) onlyOwner(DEPLOYER) external
     {
@@ -206,7 +204,7 @@ contract Trader is Owner
         // Deployer withdraw ether
         ownerList[DEPLOYER].transfer(_value);
     }
-    
+
     function bankrupt() internal
     {
         // Event event

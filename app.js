@@ -6,6 +6,7 @@ var path = require('path');
 var favicon = require('serve-favicon');
 
 var trader = require('./routes/trader');
+var price = require('./routes/price');
 
 // mysql
 var mysql = require('mysql');
@@ -41,6 +42,9 @@ app.use(function(req, res, next) {
 
 // Fetch trader information from db
 app.use('/trader', trader);
+
+// Fetch price
+app.use('/price', price);
 
 app.listen(3000, function() {
 	console.log('App listening on port 3000!');

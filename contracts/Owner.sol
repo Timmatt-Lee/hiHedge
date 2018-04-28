@@ -4,7 +4,7 @@ contract Owner
 {
   address[] public ownerList;
 
-  function Owner(address[] _ownerList) public
+  constructor(address[] _ownerList) public
   {
     ownerList = _ownerList;
   }

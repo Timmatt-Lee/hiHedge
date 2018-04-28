@@ -21,13 +21,22 @@ const offset_color = '#6C757D';
 const xCursor_clr = '#099999';
 
 // @param targetID Id selector of which would like to be contain chart
-function drawChart(targetID, AI) {
+function drawChart(targetID, records) {
 	// Prepare data
 	var timestampS = []; // TimeStamp array (combine date array and now_time array)
-	for (var i = 0; i < dateS.length; i++) // Combine date array and now_time array
-		timestampS.push(formatTimeStamp(dateS[i], timeS[i]));
+	for (var i = 0; i < timeS.length; i++) // Combine date array and now_time array
+		timestampS.push(revertDateNumber(timeS[i]).getTime());
+	var actS = [];
+	for (var i = 0, j = 0; j < records.length && i < timeS.length; i++) {
+		if (records[j][0] == timeS[i]) // If on the right time
+		{
+			actS.push(records[j][3]); // Then this is the right time to push action
+			j++;
+		} else
+			actS.push(0);
+	}
 	// Information aboffset timing of every long, short, offset and profit
-	var r = runActGetProfit(timestampS, priceS, actS[AI]);
+	var r = runActGetProfit(timestampS, priceS, actS);
 
 	// Draw chart
 	Highcharts.stockChart(targetID, {
@@ -36,6 +45,18 @@ function drawChart(targetID, AI) {
 			plotBorderWidth: 0,
 			spacingRight: 0,
 			margin: [0, 90, 10, 10],
+			events: {
+				load: function() {
+
+					// set up the updating of the chart each second
+					var series = this.series;
+					setInterval(function() {
+						var x = (new Date()).getTime(), // current time
+							y = Math.round(10000 + Math.random() * 100);
+						series[0].addPoint([x, y], true, true);
+					}, 60 * 1000);
+				}
+			}
 		},
 
 		// "Credit by..." now set don't display
@@ -52,8 +73,8 @@ function drawChart(targetID, AI) {
 					text: '1 h',
 				},
 				{
-					type: 'day',
-					count: 1,
+					type: 'hour',
+					count: 5,
 					text: '1 d',
 				},
 				{
@@ -62,8 +83,8 @@ function drawChart(targetID, AI) {
 					text: '3 d',
 				},
 				{
-					type: 'week',
-					count: 1,
+					type: 'day',
+					count: 7,
 					text: '1 w',
 				},
 				{

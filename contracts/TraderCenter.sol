@@ -5,15 +5,12 @@ import "./Trader.sol";
 contract TraderCenter
 {
     address deployer;   // To record who deploy this contract
-    
+
     event RegisteredTrader(address trader);
     // Each registered account can have an array of Trader contract instance
     mapping(address => Trader[]) public traderOf;
     
-    /*
-     * Constrctor function
-     */
-    function TraderCenter() public
+    constructor() public
     {
         deployer = msg.sender;
     }

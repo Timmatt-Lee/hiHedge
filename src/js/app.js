@@ -1,7 +1,5 @@
 'use strict'
 
-var l = [];
-
 var App = {
 	web3Provider: null,
 	contracts: {}, // Store every contracts' json
@@ -9,27 +7,26 @@ var App = {
 	etherBalance: 0, // User's ether balance
 
 	init: function() {
-		var i = -1;
-		var l2 = [26, 47, 72, 80, 100];
-
-
-		// $('.navbar').on('click', () => l.push(i));
+		// var i = 0;
+		// var l2 = [3, 15, 25, 98, 101]; 
+		//[6, 7, 9, 11, 12, 15, 16, 20, 23, 24, 25, 29, 38, 40, 42, 43, 48, 51, 53, 64, 68, 73, 85, 91]
+		// $('.navbar').on('click', () => l.push(i - 1));
 		// var loop = setInterval(() => {
-		// 	drawChart('tab-traderShare', ++i);
-		// 	console.log(i);
-		// 	if (i >= 104)
+		// 	drawChart('tab-traderShare', i++);
+		// 	console.log(i - 1);
+		// 	if (i == 105)
 		// 		clearInterval(loop);
 		// }, 2000)
-		// $('.navbar').on('click', () => l.push(l2[i]));
+		// $('.navbar').on('click', () => l.push(l2[i - 1]));
 		// var loop = setInterval(() => {
-		// 	drawChart('tab-traderShare', l2[++i]);
-		// 	console.log(l2[i]);
-		// 	if (i >= l2.length - 1)
+		// 	drawChart('tab-traderShare', l2[i++]);
+		// 	console.log(l2[i - 1]);
+		// 	if (i == l2.length)
 		// 		clearInterval(loop);
 		// }, 2000)
-		$('.navbar').on('click', () => drawChart('tab-traderShare', ++i))
-		drawChart('tab-traderShare', 0)
-		return;
+		// $('.navbar').on('click', () => drawChart('tab-traderShare', ++i))
+		// drawChart('tab-traderShare', 0)
+		// return;
 		App.initWeb3();
 	},
 
@@ -95,7 +92,7 @@ var App = {
 		$('.ether-userAddress:not(:input)').text(App.account);
 		$('.ether-userAddress').attr('data-clipboard-text', App.account);
 		// User's ether balance UI
-		$('.ether-userBalance').text(myNumber(App.etherBalance));
+		$('.ether-userBalance').text(App.etherBalance.toFixed(2));
 		// Every warning tootip
 		$('.tooltip-notOwner').attr('data-original-title', 'Need Authentication');
 		$('.tooltip-gotFrozen').attr('data-original-title', 'Sorry, you\'ve got frozen');
@@ -260,21 +257,55 @@ function zip(arr1, arr2) {
 	return r;
 }
 
-function formatTimeStamp(y4m2d2, hhmmss) {
-	var tz = '+00:00'; // set 00:00 or system will change ts by local timezone.
-	var year = y4m2d2.slice(0, 4);
-	var month = y4m2d2.slice(4, 6);
-	var day = y4m2d2.slice(6, 8);
-
-	var hr = hhmmss.slice(0, 2);
-	var mn = hhmmss.slice(2, 4);
-	var sc = hhmmss.slice(4, 6);
-
-	var date_str = year + "-" + month + "-" + day + "T" + hr + ":" + mn + ":" + sc + tz;
-	var dt = new Date(date_str);
-	return dt.getTime();
+function myDateTime(dateTime) {
+	var str = dateTime.toString();
+	var r = '';
+	for (var i = 0; i < 14; i++) {
+		if (i == 4 || i == 6)
+			r += '/';
+		else if (i == 8)
+			r += ' ';
+		else if (i == 10 || i == 12)
+			r += ':';
+		r += str[i];
+	}
+	return r;
 }
 
+function revertDateNumber(n) {
+	var tz = '+00:00'; // set 00:00 or system will change ts by local timezone.
+	str = n.toString();
+	var Y = str.slice(0, 4);
+	var M = str.slice(4, 6);
+	var D = str.slice(6, 8);
+
+	var h = str.slice(8, 10);
+	var m = str.slice(10, 12);
+	var s = str.slice(12, 14);
+
+	var str = Y + "-" + M + "-" + D + "T" + h + ":" + m + ":" + s + tz;
+	return (new Date(str));
+}
+
+function formatDateNumber(date) {
+	var Y = date.getFullYear();
+	var M = date.getMonth() + 1;
+	if (M < 10)
+		M = '0' + M;
+	var D = date.getDate();
+	if (D < 10)
+		D = '0' + D;
+	var h = date.getHours();
+	if (h < 10)
+		h = '0' + h;
+	var m = date.getMinutes();
+	if (m < 10)
+		m = '0' + m;
+	var s = date.getSeconds();
+	if (s < 10)
+		s = '0' + s;
+	return Y + M + D + h + m + s;
+}
 
 function formatYMD(timestamp_in_ms, slicer = '/') {
 	var offset = new Date().getTimezoneOffset();
@@ -304,16 +335,17 @@ function formatTime(timestamp_in_ms, slicer = ':') {
 
 	var hours = dt.getHours();
 	var minutes = dt.getMinutes();
-	// var seconds = dt.getSeconds();
+	var seconds = dt.getSeconds();
 
-	// the above dt.get...() functions return a single digit
-	// so I prepend the zero here when needed
 	if (hours < 10)
 		hours = '0' + hours;
 
 	if (minutes < 10)
 		minutes = '0' + minutes;
-	return hours + slicer + minutes;
+
+	if (second < 10)
+		second = '0' + second;
+	return hours + slicer + minutes + slicer + second;
 }
 
 function round(v, deci) {
