@@ -18,7 +18,6 @@ module.exports = () => {
 	last_closing_time.setSeconds(59);
 
 	var time_iterator = new Date(Date.now());
-	time_iterator.setMilliseconds(0);
 	// If now is in closing time, just iterate from last closing time
 	if ( // Holiday, Saturday 4:59 ~ Monday 8:45
 		(((time_iterator.getHours() == 4 && time_iterator.getMinutes() > 59) || (time_iterator.getHours() > 4)) && time_iterator.getDay() == 6) ||
@@ -35,6 +34,8 @@ module.exports = () => {
 		)
 	)
 		time_iterator = last_closing_time;
+
+	time_iterator.setMilliseconds(0);
 
 	// Generate fit fake price series before now
 	for (var counter = 0; counter < priceS.length; counter++) {

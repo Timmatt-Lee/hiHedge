@@ -22,6 +22,19 @@ const xCursor_clr = '#099999';
 
 // @param targetID Id selector of which would like to be contain chart
 function drawChart(targetID, records) {
+	var chart; // Stock chart object
+
+	var real_profit = 0;
+	var unreal_profit = 0;
+	var profitS = []; //Array of profit at each time (for graph)
+	var positionS = []; // Array of position (for graph)
+	var position_withP = []; // Array of position bind with Price
+	var totalProfitS = {};
+
+	var long_flag = [];
+	var short_flag = [];
+	var offset_flag = [];
+
 	// Fetch timeS and priceS from server
 	$.ajax({
 		method: "GET",
@@ -33,16 +46,15 @@ function drawChart(targetID, records) {
 
 			// Prepare actS
 			var actS = [];
-			for (var i = 0, j = 0; j < records.length && i < timeS.length; i++) {
-				if (revertDateNumber(records[j][0]).getTime() == timeS[i]) // If on the right time
-				{
-					actS.push(records[j][3]); // Then this is the right time to push action
-					j++;
-				} else
-					actS.push(0);
+			for (var i = 0, j = 0; i < timeS.length; i++) {
+				var act = 0;
+				// If this record is on the right time, trigger action at this time
+				if (j < records.length && revertDateNumber(records[j][0]).getTime() == timeS[i])
+					act = records[j++][3];
+				// console.log(records[j][0], formatDateNumber(new Date(Date.UTC(timeS[i]))));
+				// Run action at this time and write the result
+				runActGetProfit(timeS[i], priceS[i], act)
 			}
-			// Information aboffset timing of every long, short, offset and profit
-			var r = runActGetProfit(timeS, priceS, actS);
 
 			// Draw chart
 			Highcharts.stockChart(targetID, {
@@ -53,14 +65,24 @@ function drawChart(targetID, records) {
 					margin: [0, 90, 10, 10],
 					events: {
 						load: function() {
-							var series = this.series;
+							chart = this;
 							setInterval(() =>
 								$.ajax({
 									method: "GET",
 									url: "/price",
 									success: (p) => {
 										if (!p) return;
-										series[0].addPoint([Date.now(), Number(p)], true, true);
+										var x = new Date(Date.now());
+										x.setMilliseconds(0);
+										x = x.getTime();
+										// Price
+										chart.series[0].addPoint([x, Number(p)], true, true);
+										// Run with no action
+										runActGetProfit(x, p, 0);
+										// Profit
+										chart.series[1].addPoint([x, profitS[profitS.length - 1]], true, true);
+										// Position
+										chart.series[2].addPoint([x, positionS[positionS.length - 1]], true, true);
 									},
 								}), 1000);
 						}
@@ -81,13 +103,8 @@ function drawChart(targetID, records) {
 					// Style of range selector button
 					buttons: [{
 							type: 'minute',
-							count: 1,
-							text: '1 m',
-						},
-						{
-							type: 'minute',
-							count: 10,
-							text: '10 m',
+							count: 5,
+							text: '5 m',
 						},
 						{
 							type: 'hour',
@@ -96,15 +113,20 @@ function drawChart(targetID, records) {
 						},
 						{
 							type: 'hour',
-							count: 3,
-							text: '3 h',
+							count: 5,
+							text: '5 h',
+						},
+						{
+							type: 'day',
+							count: 1,
+							text: '1 d',
 						},
 						{
 							type: 'all',
 							text: 'All',
 						},
 					],
-					selected: 1, // Default active button index (from 1)
+					selected: 2, // Default active button index (from 1)
 					inputDateFormat: '%Y/%m/%d', // Input is the date now_time selector input
 				},
 
@@ -193,8 +215,8 @@ function drawChart(targetID, records) {
 							forced: true,
 							// Only grouped to these units
 							units: [
-								['second', [1, 5, 10, 30]],
-								['minute', [1, 5, 10, 30]]
+								['minute', [1, 5, 10, 15, 30, 45]],
+								['hour', [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12]],
 							],
 						},
 					},
@@ -230,7 +252,7 @@ function drawChart(targetID, records) {
 						type: 'areaspline',
 						name: 'Profit',
 						id: 'profit_line',
-						data: zip(timeS, r.profitS), // Data for plot the graph
+						data: zip(timeS, profitS), // Data for plot the graph
 						lineWidth: 0,
 						color: profit_color,
 						yAxis: 1, // Binding the index of the objct of yAxis
@@ -239,13 +261,12 @@ function drawChart(targetID, records) {
 						tooltip: {
 							// valueDecimal: 1,
 							pointFormatter: function() {
-								var tS = r.totalProfitS;
-								var t = tS[this.x];
+								var t = totalProfitS[this.x];
 								if (t == undefined) return;
 								// Ratio compare with the beginning of the visible range
 								var cmp_base;
 								var i = 0;
-								while (!(cmp_base = tS[this.series.processedXData[i++]])); // Find the first available number
+								while (!(cmp_base = totalProfitS[this.series.processedXData[i++]])); // Find the first available number
 								var rr = ((t - cmp_base) / Math.abs(cmp_base)); // Rate of retuen
 								// Tooltip text
 								// Prefix
@@ -311,7 +332,7 @@ function drawChart(targetID, records) {
 						type: 'column',
 						name: 'Position',
 						id: 'pos_chart',
-						data: zip(timeS, r.positionS),
+						data: zip(timeS, positionS),
 						yAxis: 2,
 						zIndex: -2,
 						// Don't use getExtremesFromAll, CPU will be dead
@@ -350,7 +371,7 @@ function drawChart(targetID, records) {
 					// Long flag
 					{
 						type: 'flags',
-						data: r.long_flag,
+						data: long_flag,
 						color: Highcharts.Color(long_color).setOpacity(0.12).get('rgba'),
 						fillColor: Highcharts.Color(long_color).setOpacity(0.12).get('rgba'),
 						y: -38,
@@ -363,7 +384,7 @@ function drawChart(targetID, records) {
 					// Short flag
 					{
 						type: 'flags',
-						data: r.short_flag,
+						data: short_flag,
 						color: Highcharts.Color(short_color).setOpacity(0.1).get('rgba'),
 						fillColor: Highcharts.Color(short_color).setOpacity(0.1).get('rgba'),
 						y: -25,
@@ -376,7 +397,7 @@ function drawChart(targetID, records) {
 					// Offset flag
 					{
 						type: 'flags',
-						data: r.offset_flag,
+						data: offset_flag,
 						color: Highcharts.Color(offset_color).setOpacity(0.13).get('rgba'),
 						fillColor: Highcharts.Color(offset_color).setOpacity(0.13).get('rgba'),
 						y: 15,
@@ -390,110 +411,96 @@ function drawChart(targetID, records) {
 			});
 		}
 	});
-}
-
-/*
- * Find the profit of long, short position and offset
- *
- * @param timeS Date and Time array
- * @param priceS Price array
- * @param actS Action array
- * @return {profitS, totalProfitS, positionS long_flag, short_flag, offset_flag}
- */
-function runActGetProfit(timeS, priceS, actS) {
-	const TRADE_FEE = 0.6; // Unit is point
-	const TAX_RATE = 0.0; // Transfer to TRADE_FEE, actual value is 0.00002
-	const POINT = 1; // Value of every point of the future (e.g. 小台指期 = 50)
-
-	var long_flag = [];
-	var short_flag = [];
-	var offset_flag = [];
-	var profitS = [];
-	var totalProfitS = {}; // Total profit, for profit graph's tooltip data
-	var positionS = [];
-	var position_withP = []; // Position bind with Price array
-
-	var unreal_profit = 0; // Before offset, the balance binds with future
-	var real_profit = 0; // The actual profit after offset
-	var position = 0; // long position > 0, short < 0
 
 	/*
-	 * Flag's tooltip data
+	 * Find the profit of long, short position and offset
 	 *
-	 * @param st State of trader's action
-	 * @param ts TimeStamp
-	 * @param pr Now price
-	 * @param pos Position
-	 * @return flag's tooltip needed object
+	 * @param time Time in js default ms format
+	 * @param price Price at this `time`
+	 * @param act Action at this `time`
+	 * @param *_flag For * flag in graph
 	 */
-	function actFlagTooltip(st, ts, pr, pos) {
-		var text, title;
-		switch (st) {
-			case TraderState.LONG_BUY:
-				text = '<b><span style="color:' + long_color + '">Long ' + plural(Math.abs(pos), 'Lot') + '</span></b>';
-				title = 'L';
-				break;
-			case TraderState.SHORT_SELL:
-				text = '<b><span style="color:' + short_color + '">Short ' + plural(Math.abs(pos), 'Lot') + '</span></b>';
-				title = 'S';
-				break;
-			case TraderState.SHORT_COVER:
-			case TraderState.LONG_COVER:
-				text = '<b><span style="color:' + offset_color + '">Offset ' + plural(Math.abs(pos), 'Lot') + '</span></b>';
-				title = 'O';
-				break;
-		}
-		text += '　<span style="color:#aaaaaa">( ' + pr + 'pt )</span>';
-		return { x: ts, title: title, text: text };
-	}
+	function runActGetProfit(time, price, act) {
+		const TRADE_FEE = 0.6; // Unit is point
+		const TAX_RATE = 0.0; // Transfer to TRADE_FEE, actual value is 0.00002
+		const POINT = 1; // Value of every point of the future (e.g. 小台指期 = 50)
 
-	function calCost(now_price, position) {
-		var tax = Math.round(now_price * POINT * TAX_RATE);
-		return (TRADE_FEE + tax) * Math.abs(position);
-	}
-
-	function calProfit(now_price, hold_price, position) {
-		return (now_price - hold_price) * POINT * position - calCost(now_price, position)
-	}
-
-	function calCoverProfit(now_price) {
-		var pf = 0;
-		for (var i in position_withP)
-			pf += calProfit(now_price, position_withP[i][1], position_withP[i][0])
-		return pf;
-	}
-
-	// Start calculation
-	for (var i = 0; i < timeS.length; i++) {
-		var now_time = timeS[i];
-		var now_price = priceS[i];
-		var act = actS[i];
 		var pre_profit = real_profit + unreal_profit;
-		// Calculate unreal profit every step no matter what
-		unreal_profit = calCoverProfit(now_price);
+		var position = (positionS.length == 0) ? 0 : positionS[positionS.length - 1]; // Last position
+
+		/*
+		 * Flag's tooltip data
+		 *
+		 * @param st State of trader's action
+		 * @param ts TimeStamp
+		 * @param pr Now price
+		 * @param pos Position
+		 * @return flag's tooltip needed object
+		 */
+		function actFlagTooltip(st, ts, pr, pos) {
+			var text, title;
+			switch (st) {
+				case TraderState.LONG_BUY:
+					text = '<b><span style="color:' + long_color + '">Long ' + plural(Math.abs(pos), 'Lot') + '</span></b>';
+					title = 'L';
+					break;
+				case TraderState.SHORT_SELL:
+					text = '<b><span style="color:' + short_color + '">Short ' + plural(Math.abs(pos), 'Lot') + '</span></b>';
+					title = 'S';
+					break;
+				case TraderState.SHORT_COVER:
+				case TraderState.LONG_COVER:
+					text = '<b><span style="color:' + offset_color + '">Offset ' + plural(Math.abs(pos), 'Lot') + '</span></b>';
+					title = 'O';
+					break;
+			}
+			text += '　<span style="color:#aaaaaa">( ' + pr + 'pt )</span>';
+			return { x: ts, title: title, text: text };
+		}
+
+		function calCost(price, position) {
+			var tax = Math.round(price * POINT * TAX_RATE);
+			return (TRADE_FEE + tax) * Math.abs(position);
+		}
+
+		function calProfit(price, hold_price, position) {
+			return (price - hold_price) * POINT * position - calCost(price, position)
+		}
+
+		function calCoverProfit(price) {
+			var pf = 0;
+			for (var i in position_withP)
+				pf += calProfit(price, position_withP[i][1], position_withP[i][0])
+			return pf;
+		}
+
+		////////////////////////////   START   ///////////////////////////
+
+		// Calculate unreal profit at first
+		unreal_profit = calCoverProfit(price);
 
 		if (act > 0) { // Buy
 			if (act + position > 0) // Long position after buying
 			{
 				if (position < 0) { // If it used to short position, short cover
 					unreal_profit = 0; // Turn to real profit
-					real_profit += calCoverProfit(now_price);
-					offset_flag.push(actFlagTooltip(TraderState.SHORT_COVER, now_time, now_price, -position));
+					real_profit += calCoverProfit(price);
+					offset_flag.push(actFlagTooltip(TraderState.SHORT_COVER, time, price, -position));
 					position_withP = []; // Clear because of offset
-					long_flag.push(actFlagTooltip(TraderState.LONG_BUY, now_time, now_price, act + position));
+					long_flag.push(actFlagTooltip(TraderState.LONG_BUY, time, price, act + position));
 					position += act; // Cover and add to long position
-					position_withP.push([position, now_price]); // Buy long
-					real_profit -= calCost(now_price, position); // Cost of buying
+					position_withP.push([position, price]); // Buy long
+					real_profit -= calCost(price, position); // Cost of buying
 				} else { // Just add more long position
-					long_flag.push(actFlagTooltip(TraderState.LONG_BUY, now_time, now_price, act));
+					long_flag.push(actFlagTooltip(TraderState.LONG_BUY, time, price, act));
 					position += act; // Add more long position
-					position_withP.push([act, now_price]); // Buy long
-					real_profit -= calCost(now_price, act); // Cost of buying
+					position_withP.push([act, price]); // Buy long
+					real_profit -= calCost(price, act); // Cost of buying
 				}
 			} else if (act + position < 0) // Still at short position after buying
 			{
 				// Cover part of short position
-				offset_flag.push(actFlagTooltip(TraderState.SHORT_COVER, now_time, now_price, act));
+				offset_flag.push(actFlagTooltip(TraderState.SHORT_COVER, time, price, act));
 				// Try to find the best price to cover
 				position_withP.sort((a, b) => b[1] - a[1]); // Sort higher price with higher priority
 				// Traverse all short record to satisfy this action (short cover)
@@ -501,22 +508,22 @@ function runActGetProfit(timeS, priceS, actS) {
 					if (-act > position_withP[j][0]) { // This record can satisfy the action
 						position += act;
 						position_withP[j][0] += act;
-						real_profit += calProfit(now_price, position_withP[j][1], -act);
-						unreal_profit -= calProfit(now_price, position_withP[j][1], -act);
+						real_profit += calProfit(price, position_withP[j][1], -act);
+						unreal_profit -= calProfit(price, position_withP[j][1], -act);
 						act = 0; // Action Satisfied
 					} else { // This record cannot satisfy action
 						position -= position_withP[j][0]; // Short cover
 						act += position_withP[j][0]; // Decrease act (position_withP[J][0] is negative)
-						real_profit += calProfit(now_price, position_withP[j][1], position_withP[j][0]);
-						unreal_profit -= calProfit(now_price, position_withP[j][1], position_withP[j][0]);
+						real_profit += calProfit(price, position_withP[j][1], position_withP[j][0]);
+						unreal_profit -= calProfit(price, position_withP[j][1], position_withP[j][0]);
 						position_withP[j][0] = 0; // Exhaust the record
 					}
 				}
 			} else // act + position == 0,  offset for short position
 			{
 				unreal_profit = 0; // Turn to real profit
-				real_profit += calCoverProfit(now_price);
-				offset_flag.push(actFlagTooltip(TraderState.SHORT_COVER, now_time, now_price, act));
+				real_profit += calCoverProfit(price);
+				offset_flag.push(actFlagTooltip(TraderState.SHORT_COVER, time, price, act));
 				position = 0;
 				position_withP = [];
 			}
@@ -525,23 +532,23 @@ function runActGetProfit(timeS, priceS, actS) {
 			{
 				if (position > 0) { // If it used to long position, long cover
 					unreal_profit = 0; // Turn to real profit
-					real_profit += calCoverProfit(now_price);
-					offset_flag.push(actFlagTooltip(TraderState.LONG_COVER, now_time, now_price, -position));
+					real_profit += calCoverProfit(price);
+					offset_flag.push(actFlagTooltip(TraderState.LONG_COVER, time, price, -position));
 					position_withP = []; // Clear because of offset
-					short_flag.push(actFlagTooltip(TraderState.SHORT_SELL, now_time, now_price, act + position));
+					short_flag.push(actFlagTooltip(TraderState.SHORT_SELL, time, price, act + position));
 					position += act; // Cover and add to short position
-					position_withP.push([position, now_price]); // Short selling
-					real_profit -= calCost(now_price, position); // Cost of selling
+					position_withP.push([position, price]); // Short selling
+					real_profit -= calCost(price, position); // Cost of selling
 				} else { // Just add more long position
-					short_flag.push(actFlagTooltip(TraderState.SHORT_SELL, now_time, now_price, act));
+					short_flag.push(actFlagTooltip(TraderState.SHORT_SELL, time, price, act));
 					position += act; // Add more short position
-					position_withP.push([act, now_price]); // Short selling
-					real_profit -= calCost(now_price, act); // Cost of selling
+					position_withP.push([act, price]); // Short selling
+					real_profit -= calCost(price, act); // Cost of selling
 				}
 			} else if (act + position > 0) // Still long position after selling
 			{
 				// Cover part of long position
-				offset_flag.push(actFlagTooltip(TraderState.LONG_COVER, now_time, now_price, act));
+				offset_flag.push(actFlagTooltip(TraderState.LONG_COVER, time, price, act));
 				// Try to find the best price to cover
 				position_withP.sort((a, b) => a[1] - b[1]); // Sort lower price with higher priority
 				// Traverse all long record to satisfy this action (long cover)
@@ -549,38 +556,29 @@ function runActGetProfit(timeS, priceS, actS) {
 					if (-act < position_withP[j][0]) { // This record can satisfy the action
 						position += act;
 						position_withP[j][0] += act;
-						real_profit += calProfit(now_price, position_withP[j][1], -act);
-						unreal_profit -= calProfit(now_price, position_withP[j][1], -act);
+						real_profit += calProfit(price, position_withP[j][1], -act);
+						unreal_profit -= calProfit(price, position_withP[j][1], -act);
 						act = 0; // Action Satisfied
 					} else { // This record cannot satisfy action
 						position -= position_withP[j][0]; // long cover
 						act += position_withP[j][0]; // Increase act (act is negative)
-						real_profit += calProfit(now_price, position_withP[j][1], position_withP[j][0]);
-						unreal_profit -= calProfit(now_price, position_withP[j][1], position_withP[j][0]);
+						real_profit += calProfit(price, position_withP[j][1], position_withP[j][0]);
+						unreal_profit -= calProfit(price, position_withP[j][1], position_withP[j][0]);
 						position_withP[j][0] = 0; // Exhaust the record
 					}
 				}
 			} else // act + position == 0, offset for long position
 			{
 				unreal_profit = 0; // Turn to real profit
-				real_profit += calCoverProfit(now_price);
-				offset_flag.push(actFlagTooltip(TraderState.LONG_COVER, now_time, now_price, act));
+				real_profit += calCoverProfit(price);
+				offset_flag.push(actFlagTooltip(TraderState.LONG_COVER, time, price, act));
 				position = 0;
 				position_withP = [];
 			}
 		}
-		totalProfitS[now_time] = real_profit + unreal_profit;
-		profitS.push(real_profit + unreal_profit - pre_profit);
+		// console.log(new Date(time), price, act, position, (real_profit + unreal_profit));
 		positionS.push(position);
-		// console.log(formatYMD(now_time), formatTime(now_time), priceS[i].toFixed(), actS[i], position, (real_profit + unreal_profit - pre_profit).toFixed(1), (real_profit + unreal_profit).toFixed(1));
+		profitS.push(real_profit + unreal_profit - pre_profit);
+		totalProfitS[time] = real_profit + unreal_profit;
 	}
-	// return
-	return {
-		profitS: profitS,
-		totalProfitS: totalProfitS,
-		positionS: positionS,
-		long_flag: long_flag,
-		short_flag: short_flag,
-		offset_flag: offset_flag
-	};
 }

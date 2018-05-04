@@ -44,6 +44,9 @@ module.exports = () => {
 	)
 		time_iterator = last_closing_time;
 
+	time_iterator.setMilliseconds(0);
+	time_iterator.setSeconds(0);
+
 	// Generate fit fake price series before now
 	for (var counter = 0; counter < priceS.length; counter++) {
 		// If now is opening, then replenish prices from last opening time to now
@@ -78,7 +81,7 @@ module.exports = () => {
 	fs.writeFileSync('txMakers/data/timeS.js', 'module.exports=[' + timeS + '];');
 	fs.writeFileSync('txMakers/data/priceS.js', 'module.exports=[' + priceS + '];');
 	// Server needed data
-	return { timeS: timeS_ms, priceS: priceS };
+	return Promise.resolve({ timeS: timeS_ms, priceS: priceS });
 }
 
 function formatDateNumber(date) {

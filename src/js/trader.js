@@ -68,11 +68,16 @@ var createTrader = function(_address) {
 			// Add a label in corresponding menu
 			$('#navbarSupportedContent .dropdown-menu:' +
 				(Trader.registrant == App.account ? 'first' : 'last')).append('\
-				<a class="dropdown-item" href="' + Trader.selectorID + '"\
+				<a class="dropdown-item trader-nav" href="' + Trader.selectorID + '"\
 					data-toggle="list" role="tab">' + Trader.name + ' ' + Trader.symbol + '</a>');
+			// When there is tab switch
+			$('.trader-nav[href="' + Trader.selectorID + '"]').on('shown.bs.tab', function(e) {
+				Trader.drawChart(); // When this tab is activated
+				$(e.relatedTarget.hash + ' .trader-chart').empty() // previous active tab
+			});
 			// Prepare insert html
 			$('.tab-content').append('<div id="tab-trader-' + Trader.address + '" \
-				class="container container-xxxl fade tab-pane" role="tabpanel"></div>');
+				class="tab-trader container container-xxxl fade tab-pane" role="tabpanel"></div>');
 			// Insert HTML and update its UI after loading it
 			$(Trader.selectorID).load('trader.html', Trader.initUI);
 		},
@@ -82,8 +87,16 @@ var createTrader = function(_address) {
 			$(Trader.selectorID + ' .trader-info-img').css(
 				'background-image', 'url("../img/characters/' + Trader.name + '.jpg")'
 			);
+			// Init carousel
+			var s1 = 'trader-info-carousel-' + Trader.address;
+			$(Trader.selectorID + ' .carousel').attr('id', s1);
+			$(Trader.selectorID + ' .carousel-indicators li').attr('data-target', '#' + s1);
+
+			var s2 = 'trader-chart-' + Trader.address;
+			$(Trader.selectorID + ' #' + s1 + ' .carousel-inner').append(
+				'<div class="carousel-item trader-chart" style="padding: 15 0 0 10" id="' + s2 + '"></div>');
+
 			Trader.eventListener(); // BlockChain event listener
-			Trader.initInfo();
 			Trader.UIListener(); // bind UI with listener
 			Trader.updateUI();
 		},
@@ -106,21 +119,6 @@ var createTrader = function(_address) {
 			App.updateUI();
 		},
 
-		initInfo: function() {
-			// Init carousel
-			var s1 = 'trader-info-carousel-' + Trader.address;
-			$(Trader.selectorID + ' .carousel').attr('id', s1);
-			$(Trader.selectorID + ' .carousel-indicators li').attr('data-target', '#' + s1);
-
-			// Init chart
-			var s2 = 'trader-chart-' + Trader.address;
-			$(Trader.selectorID + ' #' + s1 + ' .carousel-inner').append(
-				'<div class="carousel-item" style="padding: 15px 0px 0px 10px" id="' + s2 + '"></div>')
-			// Wait for reocrd ready then draw chart
-			if (Trader.name == 'Jugar Lian')
-				setTimeout(() => drawChart(s2, Trader.records), 2000);
-		},
-
 		UIListener: function() {
 			// checkValidityMacro() generate listner to check validity input
 			checkValidityMacro(Trader.selectorID + ' #trader-transfer', Trader.transfer);
@@ -129,31 +127,38 @@ var createTrader = function(_address) {
 		},
 
 		eventListener: function() {
-			Trader.instance.records(null, { fromBlock: 0 }, (error, r) => {
+			var timeOut = 0;
+			Trader.instance.records(null, { fromBlock: 0 }, (error, record) => {
 				if (error)
 					return console.error(error);
 
+				var r = record.args;
+
 				// Because blockChain will prevent branch, so if it watchs any new block
 				// it would output previous event; here is to prevent repeated events
-				if (Trader.records.length > 0 && r.args.time.toNumber() == Trader.records[Trader.records.length - 1][0])
+				if (Trader.records.length > 0 && r.time.toNumber() == Trader.records[Trader.records.length - 1][0])
 					return;
 
 				Trader.records.push([
-					r.args.time.toNumber(),
-					r.args.stock,
-					r.args.price.toNumber(),
-					r.args.amount.toNumber()
+					r.time.toNumber(),
+					r.stock,
+					r.price.toNumber(),
+					r.amount.toNumber()
 				]);
 
-				$(Trader.selectorID + ' .trader-record table > tbody').append('\
+				$(Trader.selectorID + ' .trader-record table > tbody').prepend('\
 					<tr>\
-						<td>' + myDateTime(r.args.time.toNumber()) + '</td>\
-						<td>' + r.args.stock + '</td>\
-						<td>' + r.args.price.toNumber() + '</td>\
-						<td>' + r.args.amount.toNumber() + '</td>\
+						<td>' + revertDateNumber(r.time.toNumber()).toLocaleString('ja') + '</td>\
+						<td>' + r.stock + '</td>\
+						<td>' + r.price.toNumber() + '</td>\
+						<td>' + r.amount.toNumber() + '</td>\
 					</tr>\
 				');
 			});
+		},
+
+		drawChart: function() {
+			drawChart('trader-chart-' + Trader.address, Trader.records);
 		},
 
 		transfer: function() {

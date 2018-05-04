@@ -271,21 +271,6 @@ function zip(arr1, arr2) {
 	return r;
 }
 
-function myDateTime(dateTime) {
-	var str = dateTime.toString();
-	var r = '';
-	for (var i = 0; i < 14; i++) {
-		if (i == 4 || i == 6)
-			r += '/';
-		else if (i == 8)
-			r += ' ';
-		else if (i == 10 || i == 12)
-			r += ':';
-		r += str[i];
-	}
-	return r;
-}
-
 function revertDateNumber(date) {
 	date = date.toString();
 	var Y = date.slice(0, 4);
