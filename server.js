@@ -66,7 +66,7 @@ dataMaker().then((r) => {
 			x = x.getTime();
 			chartData.timeS.push(x);
 			chartData.priceS.push(Number(p));
-		}), 1000);
+		}), 60 * 1000);
 });
 
 // Fetch timeS and priceS

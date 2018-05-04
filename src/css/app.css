@@ -19,7 +19,7 @@
     margin-right: 15px;
   }
 
-  .trader-info-img {
+  .tab-trader .info-img {
     min-width              : calc(100% - 30px);
     background-size        : cover;
     background-attachment  : fixed;
@@ -29,12 +29,12 @@
     height                 : 400px;
   }
 
-  .trader-info-card .col:first-child {
+  .tab-trader .info-card .col:first-child {
     margin-left : 15px;
     margin-right: 15px;
   }
 
-  .trader-info-card .col:last-child {
+  .tab-trader .info-card .col:last-child {
     margin-right: 15px;
     margin-left : 15px;
   }
@@ -65,7 +65,7 @@
     max-width: calc(720px - 9.5rem);
   }
 
-  .trader-info-img {
+  .tab-trader .info-img {
     max-width                : 500px;
     background-size          : 500px;
     background-attachment    : fixed;
@@ -74,11 +74,11 @@
     border-bottom-left-radius: calc(.25rem - 1px);
   }
 
-  .trader-info-card .col:first-child {
+  .tab-trader .info-card .col:first-child {
     margin-left: 15px;
   }
 
-  .trader-info-card .col:last-child {
+  .tab-trader .info-card .col:last-child {
     margin-right: 15px;
   }
 }
@@ -117,7 +117,7 @@
     width: 50%;
   }
 
-  .trader-info-img {
+  .tab-trader .info-img {
     background-position: calc(50% - 250px) 3.7rem;
   }
 }
@@ -145,7 +145,7 @@
     column-count        : 2;
   }
 
-  .trader-info-img {
+  .tab-trader .info-img {
     background-position: calc(50% - 304px) 3.7rem;
   }
 }
@@ -161,7 +161,7 @@
     max-width: calc(1380px *0.4 - 9.5rem);
   }
 
-  .trader-info-img {
+  .tab-trader .info-img {
     background-position: calc(50% - 424px) 3.7rem;
   }
 }
@@ -185,7 +185,7 @@
     width: 35%;
   }
 
-  .trader-info-img {
+  .tab-trader .info-img {
     background-position: calc(50% - 535px) 3.7rem;
   }
 }
@@ -230,6 +230,6 @@
   border-top: 1px solid #dee2e6;
 }
 
-.trader-info-card .col {
+.tab-trader .info-card .col {
   padding: 0;
 }

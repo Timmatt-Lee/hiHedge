@@ -84,7 +84,7 @@ function drawChart(targetID, records) {
 										// Position
 										chart.series[2].addPoint([x, positionS[positionS.length - 1]], true, true);
 									},
-								}), 1000);
+								}), 60 * 1000);
 						}
 					}
 				},
@@ -102,11 +102,6 @@ function drawChart(targetID, records) {
 				rangeSelector: {
 					// Style of range selector button
 					buttons: [{
-							type: 'minute',
-							count: 5,
-							text: '5 m',
-						},
-						{
 							type: 'hour',
 							count: 1,
 							text: '1 h',
@@ -122,11 +117,16 @@ function drawChart(targetID, records) {
 							text: '1 d',
 						},
 						{
+							type: 'week',
+							count: 1,
+							text: '1 w',
+						},
+						{
 							type: 'all',
 							text: 'All',
 						},
 					],
-					selected: 2, // Default active button index (from 1)
+					selected: 1, // Default active button index (from 0)
 					inputDateFormat: '%Y/%m/%d', // Input is the date now_time selector input
 				},
 

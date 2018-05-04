@@ -33,10 +33,10 @@ var TraderCenter = {
 			]);
 		arr.sort((a, b) => b[2] - a[2]);
 		// Subscription list UI
-		$('.traderShare-subscription table tbody').empty();
+		$('.subscription table tbody', '#tab-traderShare').empty();
 		$.each(arr, (i, [trader, share, proportion]) => {
 			var s = TraderCenter.registeredTrader[trader];
-			$('.traderShare-subscription table > tbody').append('\
+			$('.subscription table > tbody', '#tab-traderShare').append('\
         <tr style="cursor:pointer;"\
 					onclick="$(\'a[href=\\\'' + s.selectorID + '\\\']\').tab(\'show\')">\
           <td>' + s.name + ' ' + s.symbol + '</td>\
@@ -63,10 +63,10 @@ var TraderCenter = {
 			arr = arr.concat(arr2);
 		}
 		// Subscriber list UI
-		$('.traderShare-subscriber table tbody').empty();
+		$('.subscriber table tbody', '#tab-traderShare').empty();
 		$.each(arr, (i, [trader, subscriber, share, proportion]) => {
 			var s = TraderCenter.registeredTrader[trader];
-			$('.traderShare-subscriber table > tbody').append('\
+			$('.subscriber table > tbody', '#tab-traderShare').append('\
         <tr>\
           <td' + (subscriber == App.account ? '>YOU' : ' data-simplebar\
 						data-toggle="tooltip" class="address-copier" \
@@ -82,7 +82,7 @@ var TraderCenter = {
 		});
 
 		// Trader card information
-		$('.traderCard').empty();
+		$('.traderCard', '#tab-traderShare').empty();
 		$.each(TraderCenter.registeredTrader, (address, trader) =>
 			$('.traderCard').append('\
         <div class="card">\

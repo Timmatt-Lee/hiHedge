@@ -21,7 +21,7 @@ var createTrader = function(_address) {
 			// Contract address
 			Trader.address = _address;
 			// JQ selector prefix
-			Trader.selectorID = '#tab-trader-' + _address;
+			Trader.selectorID = '#tab-' + _address;
 			// Get contract instance
 			return App.contracts.Trader.at(_address)
 				.then((_instance) => Trader.instance = _instance)
@@ -73,10 +73,10 @@ var createTrader = function(_address) {
 			// When there is tab switch
 			$('.trader-nav[href="' + Trader.selectorID + '"]').on('shown.bs.tab', function(e) {
 				Trader.drawChart(); // When this tab is activated
-				$(e.relatedTarget.hash + ' .trader-chart').empty() // previous active tab
+				$('.chart', e.relatedTarget.hash).empty() // previous active tab
 			});
 			// Prepare insert html
-			$('.tab-content').append('<div id="tab-trader-' + Trader.address + '" \
+			$('.tab-content').append('<div id="tab-' + Trader.address + '" \
 				class="tab-trader container container-xxxl fade tab-pane" role="tabpanel"></div>');
 			// Insert HTML and update its UI after loading it
 			$(Trader.selectorID).load('trader.html', Trader.initUI);
@@ -84,17 +84,17 @@ var createTrader = function(_address) {
 
 		initUI: function() {
 			// Info card top image source
-			$(Trader.selectorID + ' .trader-info-img').css(
+			$('.info-img', Trader.selectorID).css(
 				'background-image', 'url("../img/characters/' + Trader.name + '.jpg")'
 			);
 			// Init carousel
-			var s1 = 'trader-info-carousel-' + Trader.address;
-			$(Trader.selectorID + ' .carousel').attr('id', s1);
-			$(Trader.selectorID + ' .carousel-indicators li').attr('data-target', '#' + s1);
+			var s1 = 'info-carousel-' + Trader.address;
+			$('.carousel', Trader.selectorID).attr('id', s1);
+			$('.carousel-indicators li', Trader.selectorID).attr('data-target', '#' + s1);
 
-			var s2 = 'trader-chart-' + Trader.address;
-			$(Trader.selectorID + ' #' + s1 + ' .carousel-inner').append(
-				'<div class="carousel-item trader-chart" style="padding: 15 0 0 10" id="' + s2 + '"></div>');
+			var s2 = 'chart-' + Trader.address;
+			$('#' + s1 + ' .carousel-inner', Trader.selectorID).append(
+				'<div class="carousel-item chart" style="padding: 15 0 0 10" id="' + s2 + '"></div>');
 
 			Trader.eventListener(); // BlockChain event listener
 			Trader.UIListener(); // bind UI with listener
@@ -108,12 +108,12 @@ var createTrader = function(_address) {
 			// Basic information
 			var l = ['name', 'description', 'abbr', 'symbol'];
 			for (var i in l)
-				$(Trader.selectorID + ' .trader-' + l[i]).text(Trader[l[i]]);
+				$('.' + l[i], Trader.selectorID).text(Trader[l[i]]);
 
 			// Numeral information
-			$(Trader.selectorID + ' .trader-price').text(web3.fromWei(Trader.price));
-			$(Trader.selectorID + ' .trader-totalShare').text(myNumber(Trader.totalShare));
-			$(Trader.selectorID + ' .trader-userShare').text(myNumber(Trader.subscriber[App.account].share));
+			$('.price', Trader.selectorID).text(web3.fromWei(Trader.price));
+			$('.totalShare', Trader.selectorID).text(myNumber(Trader.totalShare));
+			$('.userShare', Trader.selectorID).text(myNumber(Trader.subscriber[App.account].share));
 
 			// Call global's UI update
 			App.updateUI();
@@ -121,9 +121,9 @@ var createTrader = function(_address) {
 
 		UIListener: function() {
 			// checkValidityMacro() generate listner to check validity input
-			checkValidityMacro(Trader.selectorID + ' #trader-transfer', Trader.transfer);
-			checkValidityMacro(Trader.selectorID + ' #trader-sell', Trader.sell);
-			checkValidityMacro(Trader.selectorID + ' #trader-buy', Trader.buy);
+			checkValidityMacro(Trader.selectorID + ' #transfer', Trader.transfer);
+			checkValidityMacro(Trader.selectorID + ' #sell', Trader.sell);
+			checkValidityMacro(Trader.selectorID + ' #buy', Trader.buy);
 		},
 
 		eventListener: function() {
@@ -146,7 +146,7 @@ var createTrader = function(_address) {
 					r.amount.toNumber()
 				]);
 
-				$(Trader.selectorID + ' .trader-record table > tbody').prepend('\
+				$('.record table > tbody', Trader.selectorID).prepend('\
 					<tr>\
 						<td>' + revertDateNumber(r.time.toNumber()).toLocaleString('ja') + '</td>\
 						<td>' + r.stock + '</td>\
@@ -158,12 +158,12 @@ var createTrader = function(_address) {
 		},
 
 		drawChart: function() {
-			drawChart('trader-chart-' + Trader.address, Trader.records);
+			drawChart('chart-' + Trader.address, Trader.records);
 		},
 
 		transfer: function() {
-			var _toAddress = $(Trader.selectorID + ' #trader-transfer input[placeholder="Address"]').val();
-			var _amount = $(Trader.selectorID + ' #trader-transfer input[placeholder="Amount"]').val();
+			var _toAddress = $('#transfer input[placeholder="Address"]', Trader.selectorID).val();
+			var _amount = $('#transfer input[placeholder="Amount"]', Trader.selectorID).val();
 
 			var _message = 'transfer ' + _amount + ' ' + Trader.abbr + ' to ' + _toAddress;
 			console.log('Pending: ' + _message + '...');
@@ -176,7 +176,7 @@ var createTrader = function(_address) {
 		},
 
 		sell: function() {
-			var _sellAmount = $(Trader.selectorID + ' #trader-sell input').val();
+			var _sellAmount = $('#sell input', Trader.selectorID).val();
 			var _message = 'sell ' + _sellAmount + ' ' + Trader.abbr;
 
 			console.log('Pending: ' + _message + '...');
@@ -194,7 +194,7 @@ var createTrader = function(_address) {
 		},
 
 		buy: function() {
-			var _buyValue = $(Trader.selectorID + ' #trader-buy input').val();
+			var _buyValue = $('#buy input', Trader.selectorID).val();
 			var _message = ' by ' + _buyValue + ' ether';
 
 			console.log('Pending: buy ' + _buyValue + ' ' + Trader.abbr + _message + '...');

@@ -1,33 +1,33 @@
 <!DOCTYPE html>
-<div class="card mt-3 trader-info-card">
+<div class="card mt-3 info-card">
   <div class="row">
-    <div class="col trader-info-img"></div>
+    <div class="col info-img"></div>
     <div class="col">
-      <div id="trader-info-carousel" class="carousel slide" data-ride="carousel" data-interval="2000">
+      <div id="info-carousel" class="carousel slide" data-ride="carousel">
         <div class="carousel-inner">
           <div class="carousel-item active">
             <div class="card-body">
               <h1 class="card-title">
-                <t class="trader-name"></t>
-                <t class="trader-symbol"></t>
+                <t class="name"></t>
+                <t class="symbol"></t>
               </h1>
               <div class="py-2">Total Share:
-                <t class="trader-totalShare"></t>
-                <t class="trader-abbr"></t>
+                <t class="totalShare"></t>
+                <t class="abbr"></t>
               </div>
               <div class="py-2">Price:
-                <t class="trader-price"></t> ETH /
-                <t class="trader-abbr"></t>
+                <t class="price"></t> ETH /
+                <t class="abbr"></t>
               </div>
               <div class="py-2 mb-3">My Share:
-                <t class="trader-userShare"></t>
-                <t class="trader-abbr"></t>
+                <t class="userShare"></t>
+                <t class="abbr"></t>
               </div>
               <blockquote class="mb-0">
-                <p style="opacity:0.5" class="mb-1 trader-description"></p>
+                <p style="opacity:0.5" class="mb-1 description"></p>
                 <footer class="blockquote-footer">
                   <small>
-                  <cite title="Source Title" class="trader-name"></cite>
+                  <cite title="Source Title" class="name"></cite>
                 </small>
                 </footer>
               </blockquote>
@@ -43,7 +43,7 @@
 </div>
 <div class="row">
   <div class="sidebar sidebar-lg" data-simplebar>
-    <div class="trader-record card mt-3">
+    <div class="record card mt-3">
       <h3 class="card-header">Record</h3>
       <table class="table table-hover">
         <thead>
@@ -60,9 +60,9 @@
     </div>
   </div>
   <div class="col">
-    <div class="trader-transaction card my-3">
+    <div class="transaction card my-3">
       <h3 class="card-header">Transaction</h3>
-      <div class="card-body" id="trader-transfer">
+      <div class="card-body" id="transfer">
         <h4 class="card-title">Transfer</h4>
         <div tabindex="0" data-toggle="tooltip" class="tooltip-login tooltip-gotFrozen position-relative">
           <input type="text" class="form-control mb-3" placeholder="Address" required>
@@ -76,7 +76,7 @@
           <button class="btn btn-primary" type="button">Transfer</button>
         </div>
       </div>
-      <div class="card-body" id="trader-sell">
+      <div class="card-body" id="sell">
         <h4 class="card-title">Sell</h4>
         <div tabindex="0" data-toggle="tooltip" class="tooltip-login tooltip-gotFrozen position-relative">
           <input type="number" step="1" class="form-control mb-3" placeholder="Amount" min="1" required>
@@ -86,7 +86,7 @@
           <button class="btn btn-primary" type="button">Sell</button>
         </div>
       </div>
-      <div class="card-body" id="trader-buy">
+      <div class="card-body" id="buy">
         <h4 class="card-title">Buy</h4>
         <div tabindex="0" data-toggle="tooltip" class="tooltip-login tooltip-gotFrozen position-relative">
           <input type="number" step="0.001" class="form-control mb-3" placeholder="ETH" min="0.001" required>
