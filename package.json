@@ -3,7 +3,7 @@
   "description": "Social trading to train-on-trust AI",
   "main": "server.js",
   "scripts": {
-    "start": "nodemon --ignore src/"
+    "start": "nodemon --watch server.js --watch routes/"
   },
   "repository": {
     "type": "git",
@@ -15,9 +15,10 @@
     "reloadify": "^0.2.2"
   },
   "dependencies": {
-    "ajax-request": "^1.2.3",
     "express": "^4.16.2",
     "mysql": "^2.15.0",
+    "request": "^2.85.0",
+    "request-promise": "^4.2.2",
     "serve-favicon": "^2.4.5"
   }
 }

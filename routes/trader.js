@@ -7,7 +7,7 @@ var traders = express.Router();
 traders.get('/', function(req, res, next) {
 	req.con.query('SELECT * FROM `trader` WHERE `address`="' + req.query.address + '"', function(err, rows) {
 		if (err) return console.error(err);
-		res.json(rows);
+		res.send(rows[0]);
 	});
 });
 

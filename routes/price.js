@@ -1,13 +1,9 @@
 'use strict'
 
-var fs = require('fs');
-var request = require('ajax-request');
-
-var express = require('express');
-var getPrice = express.Router();
+var request = require('request-promise');
 
 // Fetch trader information acroding to query.address from db
-getPrice.get('/', function(req, res, next) {
+function getPrice() {
 	var now = new Date(Date.now());
 	var url;
 	// If now is in closing time, return nothing
@@ -24,42 +20,42 @@ getPrice.get('/', function(req, res, next) {
 			((now.getHours() == 13 && now.getMinutes() > 44) || (now.getHours() > 13)) &&
 			((now.getHours() == 15 && now.getMinutes() < 0) || (now.getHours() < 15))
 		)
-	) {
-		res.end(null);
-		return null;
-	}
-
+	)
+		return Promise.resolve(null);
 
 	if (now.getHours() < 15)
 		url = 'http://info512.taifex.com.tw/Future/ImgChartDetail.ashx?type=1&contract=TX' + getSuffix();
 	else
 		url = 'http://info512ah.taifex.com.tw/Future/ImgChartDetail.ashx?type=1&contract=TX' + getSuffix();
 
-	request({
+	return request({
 		url: url,
-	}, function(err, resp, body) {
-		// Slice the response, price is between the 11st and 12nd camma
-		var pos = 0,
-			counter = 0,
-			camma_11 = 0,
-			camma_12 = 0;
-		for (var i in body) {
-			var new_pos = body.indexOf(',', pos + 1)
-			if (new_pos > pos) {
-				counter++;
-				if (counter == 11)
-					camma_11 = new_pos;
-				else if (counter == 12) {
-					camma_12 = new_pos;
-					break;
+		transform: function(body) {
+			if (!body) return Promise.resolve(null);
+
+			// Slice the response, price is between the 11st and 12nd camma
+			var pos = 0,
+				counter = 0,
+				camma_11 = 0,
+				camma_12 = 0;
+			for (var i in body) {
+				var new_pos = body.indexOf(',', pos + 1)
+				if (new_pos > pos) {
+					counter++;
+					if (counter == 11)
+						camma_11 = new_pos;
+					else if (counter == 12) {
+						camma_12 = new_pos;
+						break;
+					}
+					pos = new_pos;
 				}
-				pos = new_pos;
 			}
+			body = body.slice(camma_11 + 1, camma_12);
+			return body;
 		}
-		body = body.slice(camma_11 + 1, camma_12);
-		res.end(body);
 	});
-});
+}
 
 
 // Get the requested suffix of the http get url

@@ -286,36 +286,33 @@ function myDateTime(dateTime) {
 	return r;
 }
 
-function revertDateNumber(n) {
-	var tz = '+00:00'; // set 00:00 or system will change ts by local timezone.
-	str = n.toString();
-	var Y = str.slice(0, 4);
-	var M = str.slice(4, 6);
-	var D = str.slice(6, 8);
+function revertDateNumber(date) {
+	date = date.toString();
+	var Y = date.slice(0, 4);
+	var M = date.slice(4, 6);
+	var D = date.slice(6, 8);
 
-	var h = str.slice(8, 10);
-	var m = str.slice(10, 12);
-	var s = str.slice(12, 14);
-
-	var str = Y + "-" + M + "-" + D + "T" + h + ":" + m + ":" + s + tz;
-	return (new Date(str));
+	var h = date.slice(8, 10);
+	var m = date.slice(10, 12);
+	var s = date.slice(12, 14);
+	return (new Date(Date.UTC(Y, M - 1, D, h, m, s)));
 }
 
 function formatDateNumber(date) {
-	var Y = date.getFullYear();
-	var M = date.getMonth() + 1;
+	var Y = date.getUTCFullYear();
+	var M = date.getUTCMonth() + 1;
 	if (M < 10)
 		M = '0' + M;
-	var D = date.getDate();
+	var D = date.getUTCDate();
 	if (D < 10)
 		D = '0' + D;
-	var h = date.getHours();
+	var h = date.getUTCHours();
 	if (h < 10)
 		h = '0' + h;
-	var m = date.getMinutes();
+	var m = date.getUTCMinutes();
 	if (m < 10)
 		m = '0' + m;
-	var s = date.getSeconds();
+	var s = date.getUTCSeconds();
 	if (s < 10)
 		s = '0' + s;
 	return Y + M + D + h + m + s;

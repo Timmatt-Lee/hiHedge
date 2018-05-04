@@ -53,12 +53,11 @@ var createTrader = function(_address) {
 			return $.ajax({
 				method: "GET",
 				url: "/trader",
-				dataType: 'json',
 				data: { address: Trader.address },
 				success: (data) => {
 					var l = ['name', 'description', 'abbr', 'symbol'];
 					for (var i in l)
-						Trader[l[i]] = data[0][l[i]];
+						Trader[l[i]] = data[l[i]];
 				},
 			});
 		},
@@ -118,7 +117,8 @@ var createTrader = function(_address) {
 			$(Trader.selectorID + ' #' + s1 + ' .carousel-inner').append(
 				'<div class="carousel-item" style="padding: 15px 0px 0px 10px" id="' + s2 + '"></div>')
 			// Wait for reocrd ready then draw chart
-			setTimeout(() => drawChart(s2, Trader.records), 2000 + Math.random() * 4000);
+			if (Trader.name == 'Jugar Lian')
+				setTimeout(() => drawChart(s2, Trader.records), 2000);
 		},
 
 		UIListener: function() {

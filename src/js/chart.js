@@ -22,375 +22,385 @@ const xCursor_clr = '#099999';
 
 // @param targetID Id selector of which would like to be contain chart
 function drawChart(targetID, records) {
-	// Prepare data
-	var timestampS = []; // TimeStamp array (combine date array and now_time array)
-	for (var i = 0; i < timeS.length; i++) // Combine date array and now_time array
-		timestampS.push(revertDateNumber(timeS[i]).getTime());
-	var actS = [];
-	for (var i = 0, j = 0; j < records.length && i < timeS.length; i++) {
-		if (records[j][0] == timeS[i]) // If on the right time
-		{
-			actS.push(records[j][3]); // Then this is the right time to push action
-			j++;
-		} else
-			actS.push(0);
-	}
-	// Information aboffset timing of every long, short, offset and profit
-	var r = runActGetProfit(timestampS, priceS, actS);
+	// Fetch timeS and priceS from server
+	$.ajax({
+		method: "GET",
+		url: "/chartData",
+		success: (data) => {
+			// Start drawing
+			var timeS = data.timeS;
+			var priceS = data.priceS;
 
-	// Draw chart
-	Highcharts.stockChart(targetID, {
-		chart: {
-			backgroundColor: 'transparent',
-			plotBorderWidth: 0,
-			spacingRight: 0,
-			margin: [0, 90, 10, 10],
-			events: {
-				load: function() {
-					var series = this.series;
-					setInterval(() => $.ajax({
-						method: "GET",
-						url: "/price",
-						dataType: 'json',
-						success: (data) => {
-							if (data == null) return;
-							var x = (new Date()).getTime();
-							series[0].addPoint([x, data], true, true);
-						},
-					}), 1000);
-				}
+			// Prepare actS
+			var actS = [];
+			for (var i = 0, j = 0; j < records.length && i < timeS.length; i++) {
+				if (revertDateNumber(records[j][0]).getTime() == timeS[i]) // If on the right time
+				{
+					actS.push(records[j][3]); // Then this is the right time to push action
+					j++;
+				} else
+					actS.push(0);
 			}
-		},
+			// Information aboffset timing of every long, short, offset and profit
+			var r = runActGetProfit(timeS, priceS, actS);
 
-		// "Credit by..." now set don't display
-		credits: {
-			enabled: false
-		},
-
-		// now_time range selector
-		rangeSelector: {
-			// Style of range selector button
-			buttons: [{
-					type: 'minute',
-					count: 1,
-					text: '1 m',
-				},
-				{
-					type: 'minute',
-					count: 10,
-					text: '10 m',
-				},
-				{
-					type: 'hour',
-					count: 1,
-					text: '1 h',
-				},
-				{
-					type: 'hour',
-					count: 3,
-					text: '3 h',
-				},
-				{
-					type: 'all',
-					text: 'All',
-				},
-			],
-			selected: 5, // Default active button index (from 1)
-			inputDateFormat: '%Y/%m/%d', // Input is the date now_time selector input
-		},
-
-		// Define every chunck's y axis information (Price, Profit, Position)
-		yAxis: [
-			// Price
-			{
-				height: '85%',
-				gridLineWidth: 0, // no default grid line
-				// Label is the nominal or whatever display
-				labels: {
-					format: ' {value:.0f}',
-					style: { color: price_color },
-					zIndex: -1,
-					x: 38,
-					y: 3,
-				},
-				title: {
-					align: 'high',
-					text: 'Price',
-					rotation: 0,
-					style: { color: price_color },
-					x: -13,
-					y: 3,
-				},
-			},
-			// Profit
-			{
-				height: '85%',
-				gridLineWidth: 1,
-				labels: {
-					format: '<b>{value}</b>',
-					align: "right",
-					style: { color: profit_color },
-					useHTML: true,
-					x: 43,
-					y: 2,
-				},
-				title: {
-					text: '<b>Profit</b>',
-					align: 'high',
-					useHTML: true,
-					rotation: 0,
-					margin: 0,
-					style: { color: profit_color },
-					x: 8,
-					y: 2,
-				},
-			},
-			// Position
-			{
-				// labels: { enabled: false }, // invisible v ticks.
-				top: '85%', // Under Price, and Profit graph's height
-				height: '15%',
-				gridLineWidth: 0,
-				labels: { enabled: false },
-				plotLines: [{ zIndex: 5, value: 0, dashStyle: 'LongDash', color: 'black', width: 1 }],
-				// At least leave space to opposite position when only one-way data displays
-				softMin: -1,
-				softMax: 1,
-			},
-		],
-
-		// Each graph type's setting
-		plotOptions: {
-			flags: {
-				onSeries: 'price_line', // Where to insert this flag (on profit line)
-				yAxis: 0,
-				style: { color: '#ffffff' }, // Font color
-				shape: 'circlepin',
-				width: 15,
-				allowOverlapX: true,
-				tooltip: { xDateFormat: '%A, %b %e, %H:%M:%S' }, // Fix format
-				lineColor: 'transparent',
-				states: {
-					hover: {
-						lineColor: 'transparent',
+			// Draw chart
+			Highcharts.stockChart(targetID, {
+				chart: {
+					backgroundColor: 'transparent',
+					plotBorderWidth: 0,
+					spacingRight: 0,
+					margin: [0, 90, 10, 10],
+					events: {
+						load: function() {
+							var series = this.series;
+							setInterval(() =>
+								$.ajax({
+									method: "GET",
+									url: "/price",
+									success: (p) => {
+										if (!p) return;
+										series[0].addPoint([Date.now(), Number(p)], true, true);
+									},
+								}), 1000);
+						}
 					}
-				}
-			},
-			series: {
-				dataGrouping: {
-					// Best density of each data
-					groupPixelWidth: 5,
-					// No matter how narrow scale is, just apply the dataGrouping
-					forced: true,
-					// Only grouped to these units
-					units: [
-						['second', [1, 5, 10, 30]],
-						['minute', [1, 5, 10, 30]]
+				},
+
+				time: {
+					timezoneOffset: new Date().getTimezoneOffset(),
+				},
+
+				// "Credit by..." now set don't display
+				credits: {
+					enabled: false
+				},
+
+				// now_time range selector
+				rangeSelector: {
+					// Style of range selector button
+					buttons: [{
+							type: 'minute',
+							count: 1,
+							text: '1 m',
+						},
+						{
+							type: 'minute',
+							count: 10,
+							text: '10 m',
+						},
+						{
+							type: 'hour',
+							count: 1,
+							text: '1 h',
+						},
+						{
+							type: 'hour',
+							count: 3,
+							text: '3 h',
+						},
+						{
+							type: 'all',
+							text: 'All',
+						},
 					],
+					selected: 1, // Default active button index (from 1)
+					inputDateFormat: '%Y/%m/%d', // Input is the date now_time selector input
 				},
-			},
-		},
 
-		tooltip: {
-			crosshairs: { color: Highcharts.Color(xCursor_clr).setOpacity(0.4).get('rgba') }, // x line
-			borderWidth: 0,
-			useHTML: true,
-		},
+				// Define every chunck's y axis information (Price, Profit, Position)
+				yAxis: [
+					// Price
+					{
+						height: '85%',
+						gridLineWidth: 0, // no default grid line
+						// Label is the nominal or whatever display
+						labels: {
+							format: ' {value:.0f}',
+							style: { color: price_color },
+							zIndex: -1,
+							x: 38,
+							y: 3,
+						},
+						title: {
+							align: 'high',
+							text: 'Price',
+							rotation: 0,
+							style: { color: price_color },
+							x: -13,
+							y: 3,
+						},
+					},
+					// Profit
+					{
+						height: '85%',
+						gridLineWidth: 1,
+						labels: {
+							format: '<b>{value}</b>',
+							align: "right",
+							style: { color: profit_color },
+							useHTML: true,
+							x: 43,
+							y: 2,
+						},
+						title: {
+							text: '<b>Profit</b>',
+							align: 'high',
+							useHTML: true,
+							rotation: 0,
+							margin: 0,
+							style: { color: profit_color },
+							x: 8,
+							y: 2,
+						},
+					},
+					// Position
+					{
+						// labels: { enabled: false }, // invisible v ticks.
+						top: '85%', // Under Price, and Profit graph's height
+						height: '15%',
+						gridLineWidth: 0,
+						labels: { enabled: false },
+						plotLines: [{ zIndex: 5, value: 0, dashStyle: 'LongDash', color: 'black', width: 1 }],
+						// At least leave space to opposite position when only one-way data displays
+						softMin: -1,
+						softMax: 1,
+					},
+				],
 
-		// Every object corresponding to yAzis settings (Price, Profit, Position, long(flag), Short(flag), Offset(flag))
-		series: [
-			// Price
-			{
-				type: 'line',
-				name: 'Price',
-				id: 'price_line',
-				data: zip(timestampS, priceS),
-				color: Highcharts.Color(price_color).setOpacity(0.5).get('rgba'),
-				yAxis: 0,
-				zIndex: -1,
+				// Each graph type's setting
+				plotOptions: {
+					flags: {
+						onSeries: 'price_line', // Where to insert this flag (on profit line)
+						yAxis: 0,
+						style: { color: '#ffffff' }, // Font color
+						shape: 'circlepin',
+						width: 15,
+						allowOverlapX: true,
+						tooltip: { xDateFormat: '%A, %b %e, %H:%M:%S' }, // Fix format
+						lineColor: 'transparent',
+						states: {
+							hover: {
+								lineColor: 'transparent',
+							}
+						}
+					},
+					series: {
+						dataGrouping: {
+							// Best density of each data
+							groupPixelWidth: 5,
+							// No matter how narrow scale is, just apply the dataGrouping
+							forced: true,
+							// Only grouped to these units
+							units: [
+								['second', [1, 5, 10, 30]],
+								['minute', [1, 5, 10, 30]]
+							],
+						},
+					},
+				},
+
 				tooltip: {
-					pointFormat: '<span style="color:' + price_color + '">●</span>\
+					crosshairs: { color: Highcharts.Color(xCursor_clr).setOpacity(0.4).get('rgba') }, // x line
+					borderWidth: 0,
+					useHTML: true,
+				},
+
+				// Every object corresponding to yAzis settings (Price, Profit, Position, long(flag), Short(flag), Offset(flag))
+				series: [
+					// Price
+					{
+						type: 'line',
+						name: 'Price',
+						id: 'price_line',
+						data: zip(timeS, priceS),
+						color: Highcharts.Color(price_color).setOpacity(0.5).get('rgba'),
+						yAxis: 0,
+						zIndex: -1,
+						tooltip: {
+							pointFormat: '<span style="color:' + price_color + '">●</span>\
 						{series.name}: <b>{point.y:.0f}</b><br/>',
-				},
-				dataGrouping: {
-					approximation: "open", // When needed aggregation, find the extremes
-				},
-			},
-			// Profit
-			{
-				type: 'areaspline',
-				name: 'Profit',
-				id: 'profit_line',
-				data: zip(timestampS, r.profitS), // Data for plot the graph
-				lineWidth: 0,
-				color: profit_color,
-				yAxis: 1, // Binding the index of the objct of yAxis
-				zIndex: -1,
-				turboThreshold: Infinity,
-				tooltip: {
-					// valueDecimal: 1,
-					pointFormatter: function() {
-						var tS = r.totalProfitS;
-						var t = tS[this.x];
-						if (t == undefined) return;
-						// Ratio compare with the beginning of the visible range
-						var cmp_base;
-						var i = 0;
-						while (!(cmp_base = tS[this.series.processedXData[i++]])); // Find the first available number
-						var rr = ((t - cmp_base) / Math.abs(cmp_base)); // Rate of retuen
-						// Tooltip text
-						// Prefix
-						var text = '<p style="text-align:right;margin:0">\
-							<span style="color:' + this.color + '">●</span> Total Profit:';
-						// Percentage or Multiplier
-						if (Math.abs(rr) < 2) // percentage < 200%
-							text += '(' + (rr > 0 ? '+' : '') + (100 * rr).toFixed(1) + '%)'
-						else
-							text += '(' + (rr > 0 ? '+' : '') + rr.toFixed(1) + 'x)'
-						// Total profit number
-						text += '<b> ' + t.toFixed(1) + ' NTD</b></p>';
-						// Gain or Loss
-						if (this.y > 0)
-							text += '<p style="text-align:right;margin:0;color:' + long_color + '">▲ \
+						},
+						dataGrouping: {
+							approximation: "open", // When needed aggregation, find the extremes
+						},
+					},
+					// Profit
+					{
+						type: 'areaspline',
+						name: 'Profit',
+						id: 'profit_line',
+						data: zip(timeS, r.profitS), // Data for plot the graph
+						lineWidth: 0,
+						color: profit_color,
+						yAxis: 1, // Binding the index of the objct of yAxis
+						zIndex: -1,
+						turboThreshold: Infinity,
+						tooltip: {
+							// valueDecimal: 1,
+							pointFormatter: function() {
+								var tS = r.totalProfitS;
+								var t = tS[this.x];
+								if (t == undefined) return;
+								// Ratio compare with the beginning of the visible range
+								var cmp_base;
+								var i = 0;
+								while (!(cmp_base = tS[this.series.processedXData[i++]])); // Find the first available number
+								var rr = ((t - cmp_base) / Math.abs(cmp_base)); // Rate of retuen
+								// Tooltip text
+								// Prefix
+								var text = '<p style="text-align:right;margin:0">\
+									<span style="color:' + this.color + '">●</span> Total Profit:';
+								// Percentage or Multiplier
+								if (Math.abs(rr) < 2) // percentage < 200%
+									text += '(' + (rr > 0 ? '+' : '') + (100 * rr).toFixed(1) + '%)'
+								else
+									text += '(' + (rr > 0 ? '+' : '') + rr.toFixed(1) + 'x)'
+								// Total profit number
+								text += '<b> ' + t.toFixed(1) + ' NTD</b></p>';
+								// Gain or Loss
+								if (this.y > 0)
+									text += '<p style="text-align:right;margin:0;color:' + long_color + '">▲ \
 									' + this.y.toFixed(2) + ' NTD</p>';
-						else if (this.y < 0)
-							text += '<p style="text-align:right;margin:0;color:' + short_color + '">▼ \
+								else if (this.y < 0)
+									text += '<p style="text-align:right;margin:0;color:' + short_color + '">▼ \
 									' + Math.abs(this.y).toFixed(2) + ' NTD</p>';
 
-						return text;
-					}
-				},
-				dataGrouping: {
-					approximation: "open",
-				},
-				// Gradient color
-				zones: [{
-					// < 0
-					value: 0,
-					fillColor: {
-						linearGradient: { // y1 & y2 means gradient-start-position & gradient-end-position
-							x1: 0,
-							y1: 1,
-							x2: 0,
-							y2: 0
+								return text;
+							}
 						},
-						stops: [
-							// Gradient-start-color and gradient-end-color
-							[0, Highcharts.Color('black').setOpacity(0.5).get('rgba')],
-							[1, Highcharts.Color('black').setOpacity(0.1).get('rgba')]
-						]
-					}
-				}, {
-					// >= 0
-					fillColor: {
-						linearGradient: {
-							x1: 0,
-							y1: 0,
-							x2: 0,
-							y2: 1
+						dataGrouping: {
+							approximation: "open",
 						},
-						stops: [
-							[0, Highcharts.Color(profit_color).setOpacity(1).get('rgba')],
-							[1, Highcharts.Color(profit_color).setOpacity(0.1).get('rgba')]
-						]
-					}
-				}],
+						// Gradient color
+						zones: [{
+							// < 0
+							value: 0,
+							fillColor: {
+								linearGradient: { // y1 & y2 means gradient-start-position & gradient-end-position
+									x1: 0,
+									y1: 1,
+									x2: 0,
+									y2: 0
+								},
+								stops: [
+									// Gradient-start-color and gradient-end-color
+									[0, Highcharts.Color('black').setOpacity(0.5).get('rgba')],
+									[1, Highcharts.Color('black').setOpacity(0.1).get('rgba')]
+								]
+							}
+						}, {
+							// >= 0
+							fillColor: {
+								linearGradient: {
+									x1: 0,
+									y1: 0,
+									x2: 0,
+									y2: 1
+								},
+								stops: [
+									[0, Highcharts.Color(profit_color).setOpacity(1).get('rgba')],
+									[1, Highcharts.Color(profit_color).setOpacity(0.1).get('rgba')]
+								]
+							}
+						}],
 
-			},
-			// Position
-			{
-				type: 'column',
-				name: 'Position',
-				id: 'pos_chart',
-				data: zip(timestampS, r.positionS),
-				yAxis: 2,
-				zIndex: -2,
-				// Don't use getExtremesFromAll, CPU will be dead
-				// Zero every padding
-				pointPadding: 0,
-				groupPadding: 0,
-				// Color according to value
-				zones: [{
-					// < 0
-					value: 0,
-					color: short_color
-				}, {
-					// >= 0 && < 0.1 (that is 0)
-					value: 0.1,
-					color: offset_color
-				}, {
-					// >= 0.1
-					color: long_color
-				}],
-				dataGrouping: {
-					approximation: "close",
-				},
-				tooltip: {
-					pointFormatter: function() {
-						var t = '<span style="color:' + this.color + '">●</span> ';
-						if (this.y == 0)
-							t += '<b>No open position</b>';
-						else if (this.y > 0)
-							t += 'Bull position: <b>' + plural(this.y, 'Lot') + '</b>';
-						else
-							t += 'Bear position: <b>' + plural(Math.abs(this.y), 'Lot') + '</b>';
-						return t;
+					},
+					// Position
+					{
+						type: 'column',
+						name: 'Position',
+						id: 'pos_chart',
+						data: zip(timeS, r.positionS),
+						yAxis: 2,
+						zIndex: -2,
+						// Don't use getExtremesFromAll, CPU will be dead
+						// Zero every padding
+						pointPadding: 0,
+						groupPadding: 0,
+						// Color according to value
+						zones: [{
+							// < 0
+							value: 0,
+							color: short_color
+						}, {
+							// >= 0 && < 0.1 (that is 0)
+							value: 0.1,
+							color: offset_color
+						}, {
+							// >= 0.1
+							color: long_color
+						}],
+						dataGrouping: {
+							approximation: "close",
+						},
+						tooltip: {
+							pointFormatter: function() {
+								var t = '<span style="color:' + this.color + '">●</span> ';
+								if (this.y == 0)
+									t += '<b>No open position</b>';
+								else if (this.y > 0)
+									t += 'Bull position: <b>' + plural(this.y, 'Lot') + '</b>';
+								else
+									t += 'Bear position: <b>' + plural(Math.abs(this.y), 'Lot') + '</b>';
+								return t;
+							}
+						},
+					},
+					// Long flag
+					{
+						type: 'flags',
+						data: r.long_flag,
+						color: Highcharts.Color(long_color).setOpacity(0.12).get('rgba'),
+						fillColor: Highcharts.Color(long_color).setOpacity(0.12).get('rgba'),
+						y: -38,
+						states: {
+							hover: {
+								fillColor: long_color,
+							}
+						}
+					},
+					// Short flag
+					{
+						type: 'flags',
+						data: r.short_flag,
+						color: Highcharts.Color(short_color).setOpacity(0.1).get('rgba'),
+						fillColor: Highcharts.Color(short_color).setOpacity(0.1).get('rgba'),
+						y: -25,
+						states: {
+							hover: {
+								fillColor: short_color,
+							}
+						}
+					},
+					// Offset flag
+					{
+						type: 'flags',
+						data: r.offset_flag,
+						color: Highcharts.Color(offset_color).setOpacity(0.13).get('rgba'),
+						fillColor: Highcharts.Color(offset_color).setOpacity(0.13).get('rgba'),
+						y: 15,
+						states: {
+							hover: {
+								fillColor: offset_color,
+							}
+						}
 					}
-				},
-			},
-			// Long flag
-			{
-				type: 'flags',
-				data: r.long_flag,
-				color: Highcharts.Color(long_color).setOpacity(0.12).get('rgba'),
-				fillColor: Highcharts.Color(long_color).setOpacity(0.12).get('rgba'),
-				y: -38,
-				states: {
-					hover: {
-						fillColor: long_color,
-					}
-				}
-			},
-			// Short flag
-			{
-				type: 'flags',
-				data: r.short_flag,
-				color: Highcharts.Color(short_color).setOpacity(0.1).get('rgba'),
-				fillColor: Highcharts.Color(short_color).setOpacity(0.1).get('rgba'),
-				y: -25,
-				states: {
-					hover: {
-						fillColor: short_color,
-					}
-				}
-			},
-			// Offset flag
-			{
-				type: 'flags',
-				data: r.offset_flag,
-				color: Highcharts.Color(offset_color).setOpacity(0.13).get('rgba'),
-				fillColor: Highcharts.Color(offset_color).setOpacity(0.13).get('rgba'),
-				y: 15,
-				states: {
-					hover: {
-						fillColor: offset_color,
-					}
-				}
-			}
-		],
+				],
+			});
+		}
 	});
 }
-
 
 /*
  * Find the profit of long, short position and offset
  *
- * @param timestampS Date and Time array
+ * @param timeS Date and Time array
  * @param priceS Price array
  * @param actS Action array
  * @return {profitS, totalProfitS, positionS long_flag, short_flag, offset_flag}
  */
-function runActGetProfit(timestampS, priceS, actS) {
+function runActGetProfit(timeS, priceS, actS) {
 	const TRADE_FEE = 0.6; // Unit is point
 	const TAX_RATE = 0.0; // Transfer to TRADE_FEE, actual value is 0.00002
 	const POINT = 1; // Value of every point of the future (e.g. 小台指期 = 50)
@@ -454,8 +464,8 @@ function runActGetProfit(timestampS, priceS, actS) {
 	}
 
 	// Start calculation
-	for (var i = 0; i < timestampS.length; i++) {
-		var now_time = timestampS[i];
+	for (var i = 0; i < timeS.length; i++) {
+		var now_time = timeS[i];
 		var now_price = priceS[i];
 		var act = actS[i];
 		var pre_profit = real_profit + unreal_profit;
