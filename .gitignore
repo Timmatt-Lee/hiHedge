@@ -221,3 +221,7 @@ pip-log.txt
 #############
 
 node_modules/
+
+logs/
+dataMakers/data/
+txMakers/data

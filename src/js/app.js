@@ -1,5 +1,15 @@
 'use strict'
 
+// var l_up = [];
+// var l_left = [];
+// var l_right = [];
+// var l_down = []
+
+
+//up
+//[1, 2, 3, 4, 6, 11, 19, 23, 32, 37, 38, 58, 61, 77, 93, 97, 101]
+//[3, 6, 11, 19,23,37, 38,58,61,93]
+
 var App = {
 	web3Provider: null,
 	contracts: {}, // Store every contracts' json
@@ -7,6 +17,30 @@ var App = {
 	etherBalance: 0, // User's ether balance
 
 	init: function() {
+		// 諸葛44,呂布9, 曹操61,0,0最爛，貂蟬103
+		// var i = 0;
+		// var l2 = [1, 2, 3, 4, 6, 11, 19, 23, 32, 37, 38, 58, 61, 77, 93, 97, 101]; 
+		//[6, 7, 9, 11, 12, 15, 16, 20, 23, 24, 25, 29, 38, 40, 42, 43, 48, 51, 53, 64, 68, 73, 85, 91]
+		// $('#target').on('keydown', (e) => {
+		// 	if (e.keyCode == 38) l_up.push(i - 1);
+		// 	else if (e.keyCode == 40) l_down.push(i - 1);
+		// 	else if (e.keyCode == 39) l_right.push(i - 1);
+		// 	else if (e.keyCode == 37) l_left.push(i - 1);
+		// });
+		// var loop = setInterval(() => {
+		// 	drawChart('tab-traderShare', i++);
+		// 	console.log(i - 1);
+		// 	if (i == 105)
+		// 		clearInterval(loop);
+		// }, 2000)
+		// var loop = setInterval(() => {
+		// 	drawChart('tab-traderShare', l2[i++]);
+		// 	console.log(l2[i - 1]);
+		// 	if (i == l2.length)
+		// 		clearInterval(loop);
+		// }, 2000)
+		// drawChart('tab-traderShare', 0)
+		// return;
 		App.initWeb3();
 	},
 
@@ -22,9 +56,8 @@ var App = {
 		web3 = new Web3(App.web3Provider);
 
 		// Get json of the contracts & init
-		App.initContract('Token');
 		App.initContract('Trader');
-		App.initContract('TraderCenter').then(TraderCenter.init); // init object in TraderCenter.js
+		App.initContract('TraderCenter').then(TraderCenter.init); // Init object in TraderCenter.js
 		// Global UI
 		App.initUI();
 		// Async
@@ -41,9 +74,9 @@ var App = {
 	},
 
 	initUI: function() {
-		// user's account
+		// User's account
 		App.account = web3.eth.defaultAccount;
-		if (App.account === undefined) // if not login in
+		if (App.account === undefined) // If not login in
 		{
 			// Alert for log in
 			swal('Who are you ?', 'Please log in to your wallet for more', 'warning')
@@ -73,7 +106,7 @@ var App = {
 		$('.ether-userAddress:not(:input)').text(App.account);
 		$('.ether-userAddress').attr('data-clipboard-text', App.account);
 		// User's ether balance UI
-		$('.ether-userBalance').text(myNumber(App.etherBalance));
+		$('.ether-userBalance').text(App.etherBalance.toFixed(2));
 		// Every warning tootip
 		$('.tooltip-notOwner').attr('data-original-title', 'Need Authentication');
 		$('.tooltip-gotFrozen').attr('data-original-title', 'Sorry, you\'ve got frozen');
@@ -85,9 +118,11 @@ var App = {
 		addressCopier_listener('.address-copier');
 		// UI for invalid input
 		$('input[placeholder*="Address"] + .invalid-tooltip').text('I need a valid address');
-		$('input[placeholder*="Amount"] + .invalid-tooltip, input[placeholder*="ether"] + .invalid-tooltip').text('Come on... give me a positive number');
+		$('input[placeholder*="Amount"] + .invalid-tooltip, input[placeholder*="ETH"] + .invalid-tooltip').text('Come on... give me a positive number');
 		// Enable every .myNumber tooltip
 		$('.myNumber').tooltip();
+		// Enable every carousel
+		$('.carousel').carousel();
 	},
 
 	startAsyncing: function() {
@@ -100,7 +135,7 @@ var App = {
 			console.log('Block updated!');
 
 			// Re-fetch several times to avoid update lost
-			for (i = 1; i < 2; i++) {
+			for (var i = 1; i < 2; i++) {
 				setTimeout(App.asyncList, 2000 * i);
 			}
 		});
@@ -108,8 +143,9 @@ var App = {
 
 	// Add every async function into this list
 	asyncList: function() {
-		Token.async();
-		Trader.async();
+		// traverse all traders and call their sync function
+		$.each(TraderCenter.registeredTrader, (addr, obj) => obj.async());
+
 	}
 
 };
@@ -139,7 +175,7 @@ function checkValidityMacro(_selector, _function) {
 	$(':not(' + _selector + ' *)').on('focus', () => $(_selector).removeClass('was-validated'));
 }
 
-// listener for address-copier
+// Listener for address-copier
 function addressCopier_listener(_selector) {
 	$(_selector).on({
 		'mouseenter': (event) => $(event.delegateTarget).tooltip('show'),
@@ -178,10 +214,10 @@ function addressCopier_listener(_selector) {
 	});
 }
 
-// macro for multi-selector in jq
+// Macro for multi-selector in jq
 function multiSelector(preStr, arr, postStr) {
 	var result = '';
-	for (i in arr) {
+	for (var i in arr) {
 		if (i > 0) // Add ',' after the first selector
 			result += ','
 		result += (preStr + arr[i] + postStr);
@@ -191,7 +227,7 @@ function multiSelector(preStr, arr, postStr) {
 
 // Formulate number display
 function myNumber(n) {
-	var d = Math.floor(Math.log(n) / Math.log(10)); // digit of n
+	var d = Math.floor(Math.log(n) / Math.log(10)); // Digit of n
 	switch (d) {
 		case -3:
 		case -2:
@@ -214,7 +250,7 @@ function myNumber(n) {
 			// 1,000,000~999,999,999 show in format '1.23M','12.3M','123M'
 			return Math.floor(n / Math.pow(10, d - 2)) / Math.pow(10, 8 - d) + 'M';
 		default:
-			// deal with overflow
+			// Deal with overflow
 			n = n / Math.pow(10, d - 1);
 			if (n == 100) {
 				n /= 10;
@@ -228,3 +264,92 @@ function myNumber(n) {
 function numberWithCommas(n) {
 	return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
+
+
+function zip(arr1, arr2) {
+	var r = arr1.map((e, i) => [e, arr2[i]]);
+	return r;
+}
+
+function revertDateNumber(date) {
+	date = date.toString();
+	var Y = date.slice(0, 4);
+	var M = date.slice(4, 6);
+	var D = date.slice(6, 8);
+
+	var h = date.slice(8, 10);
+	var m = date.slice(10, 12);
+	var s = date.slice(12, 14);
+	return (new Date(Date.UTC(Y, M - 1, D, h, m, s)));
+}
+
+function formatDateNumber(date) {
+	var Y = date.getUTCFullYear();
+	var M = date.getUTCMonth() + 1;
+	if (M < 10)
+		M = '0' + M;
+	var D = date.getUTCDate();
+	if (D < 10)
+		D = '0' + D;
+	var h = date.getUTCHours();
+	if (h < 10)
+		h = '0' + h;
+	var m = date.getUTCMinutes();
+	if (m < 10)
+		m = '0' + m;
+	var s = date.getUTCSeconds();
+	if (s < 10)
+		s = '0' + s;
+	return Y + M + D + h + m + s;
+}
+
+function formatYMD(timestamp_in_ms, slicer = '/') {
+	var offset = new Date().getTimezoneOffset();
+	var dt_offset = offset * 60 * 1000;
+	var dt = new Date(timestamp_in_ms + dt_offset);
+
+	var y = dt.getFullYear();
+	var m = dt.getMonth() + 1;
+	var d = dt.getDate();
+
+	// the above dt.get...() functions return a single digit
+	// so I prepend the zero here when needed
+	if (m < 10) {
+		m = '0' + m;
+	}
+	if (d < 10) {
+		d = '0' + d;
+	}
+	return y + slicer + m + slicer + d;
+}
+
+
+function formatTime(timestamp_in_ms, slicer = ':') {
+	var offset = new Date().getTimezoneOffset();
+	var dt_offset = offset * 60 * 1000;
+	var dt = new Date(timestamp_in_ms + dt_offset);
+
+	var hours = dt.getHours();
+	var minutes = dt.getMinutes();
+	var seconds = dt.getSeconds();
+
+	if (hours < 10)
+		hours = '0' + hours;
+
+	if (minutes < 10)
+		minutes = '0' + minutes;
+
+	if (second < 10)
+		second = '0' + second;
+	return hours + slicer + minutes + slicer + second;
+}
+
+function round(v, deci) {
+	var x = Math.pow(10, deci);
+	return Math.round(v * x) / x;
+}
+
+// Check if unit needed plural
+function plural(value, unit) {
+	return value + ' ' + unit + (Math.abs(value) > 1 ? 's' : '');
+};

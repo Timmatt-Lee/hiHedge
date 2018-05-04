@@ -1,10 +1,9 @@
 {
   "name": "hihedge",
-  "version": "1.2.0",
-  "description": "Dapp for AI trading",
-  "main": "app.js",
+  "description": "Social trading to train-on-trust AI",
+  "main": "server.js",
   "scripts": {
-    "start": "nodemon --ignore src/"
+    "start": "nodemon --watch server.js --watch routes/"
   },
   "repository": {
     "type": "git",
@@ -18,6 +17,8 @@
   "dependencies": {
     "express": "^4.16.2",
     "mysql": "^2.15.0",
+    "request": "^2.85.0",
+    "request-promise": "^4.2.2",
     "serve-favicon": "^2.4.5"
   }
 }

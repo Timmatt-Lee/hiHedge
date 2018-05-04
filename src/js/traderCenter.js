@@ -13,8 +13,8 @@ var TraderCenter = {
 			TraderCenter.instance = instance;
 			// Init other after get instance
 			TraderCenter.getRegisteredTraders();
-			TraderCenter.bindEvents(); // bind UI with listener
-			TraderCenter.listeners(); // other listener
+			TraderCenter.bindEvents(); // Bind UI with listener
+			TraderCenter.listeners(); // Other listener
 		});
 	},
 
@@ -33,10 +33,10 @@ var TraderCenter = {
 			]);
 		arr.sort((a, b) => b[2] - a[2]);
 		// Subscription list UI
-		$('.trader-subscription table tbody').empty();
+		$('.subscription table tbody', '#tab-traderShare').empty();
 		$.each(arr, (i, [trader, share, proportion]) => {
 			var s = TraderCenter.registeredTrader[trader];
-			$('.trader-subscription table > tbody').append('\
+			$('.subscription table > tbody', '#tab-traderShare').append('\
         <tr style="cursor:pointer;"\
 					onclick="$(\'a[href=\\\'' + s.selectorID + '\\\']\').tab(\'show\')">\
           <td>' + s.name + ' ' + s.symbol + '</td>\
@@ -63,10 +63,10 @@ var TraderCenter = {
 			arr = arr.concat(arr2);
 		}
 		// Subscriber list UI
-		$('.trader-subscriber table tbody').empty();
+		$('.subscriber table tbody', '#tab-traderShare').empty();
 		$.each(arr, (i, [trader, subscriber, share, proportion]) => {
 			var s = TraderCenter.registeredTrader[trader];
-			$('.trader-subscriber table > tbody').append('\
+			$('.subscriber table > tbody', '#tab-traderShare').append('\
         <tr>\
           <td' + (subscriber == App.account ? '>YOU' : ' data-simplebar\
 						data-toggle="tooltip" class="address-copier" \
@@ -82,7 +82,7 @@ var TraderCenter = {
 		});
 
 		// Trader card information
-		$('.traderCard').empty();
+		$('.traderCard', '#tab-traderShare').empty();
 		$.each(TraderCenter.registeredTrader, (address, trader) =>
 			$('.traderCard').append('\
         <div class="card">\
@@ -121,14 +121,20 @@ var TraderCenter = {
 			// Create Trader Object from trader.js
 			createTrader(t).then((_traderObj) => {
 				TraderCenter.registeredTrader[t] = _traderObj;
+				if (!$.trim($('#navbarSupportedContent .dropdown-menu:first').html()))
+					$('#navbarSupportedContent .dropdown:first').hide();
+				if (!$.trim($('#navbarSupportedContent .dropdown-menu:last').html()))
+					$('#navbarSupportedContent .dropdown:last').hide();
 				// Subscriber & subscription
 				if (_traderObj.registrant == App.account) {
 					// When registrant is user
 					TraderCenter.subscriber[t] = _traderObj.subscriber;
+					$('#navbarSupportedContent .dropdown:first').show();
 					_traderObj.initDOM();
 				} else if (App.account in _traderObj.subscriber) {
 					// When registrant is the other and user is their subscribers
 					TraderCenter.subscription[t] = _traderObj.subscriber[App.account];
+					$('#navbarSupportedContent .dropdown:last').show();
 					_traderObj.initDOM();
 				}
 				// Update trader center UI at last
