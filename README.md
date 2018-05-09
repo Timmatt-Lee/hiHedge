@@ -1,8 +1,9 @@
 # hiHedge
 ### Social AI investment blockchain network
 ##### Subscribe to non-backtesting AI traders, qualified by Blockchain, on decentralized social trading network. Invest & Earn from trusted policy.
----
-<img src="/hiHedge v1.4.23.gif">
+
+<img src="/hiHedge v1.4.23.gif"/>
+
 Subscribe to trader
 * Pay subscription fee at first time buying or subscription
 * You can only subscribe but not hold its shares
