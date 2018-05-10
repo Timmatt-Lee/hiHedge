@@ -39,10 +39,10 @@ var TraderCenter = {
 			$('.subscription table > tbody', '#tab-traderShare').append('\
         <tr style="cursor:pointer;"\
 					onclick="$(\'a[href=\\\'' + s.selectorID + '\\\']\').tab(\'show\')">\
-          <td>' + s.name + ' ' + s.symbol + '</td>\
+          <td>' + s.name + ' ( ' + s.abbr + ' )</td>\
           <td data-toggle="tooltip" class="myNumber"\
-						data-title="' + s.symbol + ' ' + numberWithCommas(share) + ' \
-						' + s.abbr + '">' + myNumber(share) + ' ' + s.abbr + '\
+						data-title="' + numberWithCommas(share) + ' ' + s.symbol + '\
+						 ( ' + s.abbr + ' )">' + myNumber(share) + ' ' + s.symbol + '\
           </td>\
           <td>' + (proportion * 100).toFixed(1) + ' % </td>\
         </tr>\
@@ -73,9 +73,9 @@ var TraderCenter = {
 						data-clipboard-text="' + subscriber + '">' + subscriber) + '\
           </td>\
           <td data-toggle="tooltip" class="myNumber" data-title="\
-						' + s.symbol + ' ( ' + (proportion * 100).toFixed(1) + '% ) \
+						( ' + (proportion * 100).toFixed(1) + '% ) \
 						' + numberWithCommas(share) + ' \
-						' + s.abbr + '">' + myNumber(share) + ' ' + s.abbr + '\
+						' + s.symbol + '">' + myNumber(share) + ' ' + s.symbol + '\
           </td>\
         </tr>\
       ');

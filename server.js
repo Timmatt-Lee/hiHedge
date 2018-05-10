@@ -8,7 +8,7 @@ var favicon = require('serve-favicon');
 
 var traderInfo = require('./routes/trader');
 var getPrice = require('./routes/price');
-var dataMaker = require('./dataMakers/up-to-date-Price&Time(minute).js');
+var dataMaker = require('./dataMakers/up-to-date-Price&Time(second).js');
 
 // mysql
 var mysql = require('mysql');
@@ -66,7 +66,7 @@ dataMaker().then((r) => {
 			x = x.getTime();
 			chartData.timeS.push(x);
 			chartData.priceS.push(Number(p));
-		}), 60 * 1000);
+		}), 1000);
 });
 
 // Fetch timeS and priceS
