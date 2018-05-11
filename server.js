@@ -48,7 +48,7 @@ app.use('/trader', traderInfo);
 // Fetch price
 app.use('/price', (req, res, next) => {
 	getPrice().then((p) => {
-		if (!p) { res.send(null); return; };
+		if (!p) return res.send(null);
 		res.send(p);
 	});
 });
@@ -64,8 +64,12 @@ dataMaker().then((r) => {
 			var x = new Date(Date.now());
 			x.setMilliseconds(0);
 			x = x.getTime();
-			chartData.timeS.push(x);
-			chartData.priceS.push(Number(p));
+			// Fix holes in time elapse
+			var preT = chartData.timeS[chartData.timeS.length - 1];
+			for (var i = (x - preT - 1000) / 1000; i >= 0; i--) {
+				chartData.timeS.push(x - i * 1000);
+				chartData.priceS.push(Number(p));
+			}
 		}), 1000);
 });
 

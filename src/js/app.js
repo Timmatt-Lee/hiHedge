@@ -1,15 +1,5 @@
 'use strict'
 
-// var l_up = [];
-// var l_left = [];
-// var l_right = [];
-// var l_down = []
-
-
-//up
-//[1, 2, 3, 4, 6, 11, 19, 23, 32, 37, 38, 58, 61, 77, 93, 97, 101]
-//[3, 6, 11, 19,23,37, 38,58,61,93]
-
 var App = {
 	web3Provider: null,
 	contracts: {}, // Store every contracts' json
@@ -17,30 +7,6 @@ var App = {
 	etherBalance: 0, // User's ether balance
 
 	init: function() {
-		// 諸葛44,呂布9, 曹操61,0,0最爛，貂蟬103
-		// var i = 0;
-		// var l2 = [1, 2, 3, 4, 6, 11, 19, 23, 32, 37, 38, 58, 61, 77, 93, 97, 101]; 
-		//[6, 7, 9, 11, 12, 15, 16, 20, 23, 24, 25, 29, 38, 40, 42, 43, 48, 51, 53, 64, 68, 73, 85, 91]
-		// $('#target').on('keydown', (e) => {
-		// 	if (e.keyCode == 38) l_up.push(i - 1);
-		// 	else if (e.keyCode == 40) l_down.push(i - 1);
-		// 	else if (e.keyCode == 39) l_right.push(i - 1);
-		// 	else if (e.keyCode == 37) l_left.push(i - 1);
-		// });
-		// var loop = setInterval(() => {
-		// 	drawChart('tab-traderShare', i++);
-		// 	console.log(i - 1);
-		// 	if (i == 105)
-		// 		clearInterval(loop);
-		// }, 2000)
-		// var loop = setInterval(() => {
-		// 	drawChart('tab-traderShare', l2[i++]);
-		// 	console.log(l2[i - 1]);
-		// 	if (i == l2.length)
-		// 		clearInterval(loop);
-		// }, 2000)
-		// drawChart('tab-traderShare', 0)
-		// return;
 		App.initWeb3();
 	},
 
@@ -117,8 +83,8 @@ var App = {
 		});
 		addressCopier_listener('.address-copier');
 		// UI for invalid input
-		$('input[placeholder*="Address"] + .invalid-tooltip').text('I need a valid address');
-		$('input[placeholder*="Amount"] + .invalid-tooltip, input[placeholder*="ETH"] + .invalid-tooltip').text('Come on... give me a positive number');
+		$('input[type="text"] + .invalid-tooltip').text('I need a valid address');
+		$('input[type="number"] + .invalid-tooltip').text('Come on... give me a positive number');
 		// Enable every .myNumber tooltip
 		$('.myNumber').tooltip();
 		// Enable every carousel
@@ -145,34 +111,59 @@ var App = {
 	asyncList: function() {
 		// traverse all traders and call their sync function
 		$.each(TraderCenter.registeredTrader, (addr, obj) => obj.async());
-
 	}
 
 };
 
+var Chart = {
+	timeS: [],
+	priceS: [],
+	init: function() {
+		$.ajax({ url: '/chartData' })
+			.then((r) => {
+				Chart.timeS = r.timeS;
+				Chart.priceS = r.priceS;
+				setInterval(() =>
+					$.ajax({ url: "/price" }).then((p) => {
+						// If price is invalid (include not in trading time)
+						if (!p) return;
+						// Otherwise get now time and add point
+						var x = new Date(Date.now());
+						x.setMilliseconds(0);
+						x = x.getTime();
+						// Push data
+						Chart.timeS.push(x);
+						Chart.priceS.push(Number(p));
+					}), 1000)
+			})
+	},
+}
+
 $(function() {
 	$(window).load(App.init);
+	$(window).load(Chart.init);
 });
 
 // Generator for `_selector` to check validity input
 function checkValidityMacro(_selector, _function) {
 	// As soon as click, check if all input valid then call `_function`
-	$(_selector + ' button').on('click', () => {
+	_selector.find('button').on('click', () => {
 		// Traverse every child under `_selector`
-		var _selectArr = $(_selector + ' input');
+		var _selectArr = _selector.find('input');
 		var _flag = true;
 		// Check if every child valid
 		for (var i = 0; i < _selectArr.length; i++) {
 			if (!_selectArr[i].checkValidity())
 				_flag = false;
 		}
+
 		if (_flag) // If every child are valid then do `_function`
 			_function();
 		else // Else inject class into child to show their validity information
-			$(_selector).addClass('was-validated');
+			_selector.addClass('was-validated');
 	});
 	// When not focus remove the ckecking state
-	$(':not(' + _selector + ' *)').on('focus', () => $(_selector).removeClass('was-validated'));
+	$('*').not(_selector).on('focus', () => _selector.removeClass('was-validated'));
 }
 
 // Listener for address-copier
@@ -265,25 +256,23 @@ function numberWithCommas(n) {
 	return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
 
-
 function zip(arr1, arr2) {
-	var r = arr1.map((e, i) => [e, arr2[i]]);
-	return r;
+	return arr1.map((e, i) => [e, arr2[i]]);
 }
 
-function revertDateNumber(date) {
-	date = date.toString();
-	var Y = date.slice(0, 4);
-	var M = date.slice(4, 6);
-	var D = date.slice(6, 8);
+function fromDateNumber(n) {
+	n = n.toString();
+	var Y = n.slice(0, 4);
+	var M = n.slice(4, 6);
+	var D = n.slice(6, 8);
 
-	var h = date.slice(8, 10);
-	var m = date.slice(10, 12);
-	var s = date.slice(12, 14);
+	var h = n.slice(8, 10);
+	var m = n.slice(10, 12);
+	var s = n.slice(12, 14);
 	return (new Date(Date.UTC(Y, M - 1, D, h, m, s)));
 }
 
-function formatDateNumber(date) {
+function makeDateNumber(date) {
 	var Y = date.getUTCFullYear();
 	var M = date.getUTCMonth() + 1;
 	if (M < 10)
@@ -301,52 +290,6 @@ function formatDateNumber(date) {
 	if (s < 10)
 		s = '0' + s;
 	return Y + M + D + h + m + s;
-}
-
-function formatYMD(timestamp_in_ms, slicer = '/') {
-	var offset = new Date().getTimezoneOffset();
-	var dt_offset = offset * 60 * 1000;
-	var dt = new Date(timestamp_in_ms + dt_offset);
-
-	var y = dt.getFullYear();
-	var m = dt.getMonth() + 1;
-	var d = dt.getDate();
-
-	// the above dt.get...() functions return a single digit
-	// so I prepend the zero here when needed
-	if (m < 10) {
-		m = '0' + m;
-	}
-	if (d < 10) {
-		d = '0' + d;
-	}
-	return y + slicer + m + slicer + d;
-}
-
-
-function formatTime(timestamp_in_ms, slicer = ':') {
-	var offset = new Date().getTimezoneOffset();
-	var dt_offset = offset * 60 * 1000;
-	var dt = new Date(timestamp_in_ms + dt_offset);
-
-	var hours = dt.getHours();
-	var minutes = dt.getMinutes();
-	var seconds = dt.getSeconds();
-
-	if (hours < 10)
-		hours = '0' + hours;
-
-	if (minutes < 10)
-		minutes = '0' + minutes;
-
-	if (second < 10)
-		second = '0' + second;
-	return hours + slicer + minutes + slicer + second;
-}
-
-function round(v, deci) {
-	var x = Math.pow(10, deci);
-	return Math.round(v * x) / x;
 }
 
 // Check if unit needed plural
