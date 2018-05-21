@@ -3,25 +3,28 @@
   <div class="row">
     <div class="col info-img"></div>
     <div class="col">
-      <div id="info-carousel" class="carousel slide" data-ride="carousel">
+      <div class="carousel slide" data-interval="0">
         <div class="carousel-inner">
           <div class="carousel-item active">
             <div class="card-body">
               <h1 class="card-title">
                 <t class="name"></t>
-                <t class="symbol"></t>
+                ( <t class="abbr"></t> )
               </h1>
-              <div class="py-2">Total Share:
-                <t class="totalShare"></t>
-                <t class="abbr"></t>
-              </div>
               <div class="py-2">Price:
                 <t class="price"></t> ETH /
-                <t class="abbr"></t>
+                <t class="symbol"></t>
+              </div>
+              <div class="py-2">Performance:
+                <t class="performance"></t>
+              </div>
+              <div class="py-2">Total Share:
+                <t class="totalShare"></t>
+                <t class="symbol"></t>
               </div>
               <div class="py-2 mb-3">My Share:
                 <t class="userShare"></t>
-                <t class="abbr"></t>
+                <t class="symbol"></t>
               </div>
               <blockquote class="mb-0">
                 <p style="opacity:0.5" class="mb-1 description"></p>
@@ -33,10 +36,15 @@
               </blockquote>
             </div>
             <div class="card-footer">
-              <small class="text-muted">Last Trade 1 day ago</small>
+              <small class="text-muted"><t class="last-action"></t></small>
             </div>
           </div>
+          <div class="carousel-item chart" style="padding: 15px 0px 0px 10px"></div>
         </div>
+        <a class="carousel-control-next" role="button" data-slide="next">
+          <span class="carousel-control-next-icon" aria-hidden="true"></span>
+          <span class="sr-only">Next</span>
+        </a>
       </div>
     </div>
   </div>

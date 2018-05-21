@@ -43,11 +43,17 @@ var App = {
 		// User's account
 		App.account = web3.eth.defaultAccount;
 		if (App.account === undefined) // If not login in
-		{
-			// Alert for log in
 			swal('Who are you ?', 'Please log in to your wallet for more', 'warning')
+		else
+			new ClipboardJS('.address-copier');
+
+		App.updateUI();
+	},
+
+	updateUI: function() {
+		if (App.account === undefined) { // If not login in
 			// Hide some cards
-			$('.wallet-user, .token-userAllowance, .token-forUserAllowance, .trader-subscription, .trader-subscriber').hide();
+			$('.wallet-user').hide();
 			// Tooltip for log in
 			$('.tooltip-login').tooltip({
 				title: 'Please log in'
@@ -55,55 +61,42 @@ var App = {
 			// Disable every form with above tooltip
 			$('.tooltip-login *').prop('disabled', true);
 		} else {
-			// Activate copy function
-			new ClipboardJS('.address-copier');
 			// User's ether balance
-			web3.eth.getBalance(web3.eth.defaultAccount, (error, result) => {
-				App.etherBalance = web3.fromWei(result);
-				// Update global UI
-				App.updateUI();
+			web3.eth.getBalance(web3.eth.defaultAccount, (err, result) => {
+				App.etherBalance = web3.fromWei(result)
+
+				// User's account UI
+				$('input.ether-userAddress').val(App.account);
+				$('.ether-userAddress:not(:input)').text(App.account);
+				$('.ether-userAddress').attr('data-clipboard-text', App.account);
+				// User's ether balance UI
+				$('.ether-userBalance').text(App.etherBalance.toFixed(2));
+				// Every warning tootip
+				$('.tooltip-notOwner').attr('data-original-title', 'Need Authentication');
+				$('.tooltip-gotFrozen').attr('data-original-title', 'Sorry, you\'ve got frozen');
+				// Bind listener and init for address-copier
+				$('.address-copier').tooltip({
+					title: 'click to copy',
+					trigger: 'manual'
+				});
+				addressCopier_listener('.address-copier');
+				// UI for invalid input
+				$('input[type="text"] + .invalid-tooltip').text('I need a valid address');
+				$('input[type="number"] + .invalid-tooltip').text('Come on... give me a positive number');
+				// Enable every .myNumber tooltip
+				$('.myNumber').tooltip();
 			});
 		}
 	},
 
-	updateUI: function() {
-		// User's account UI
-		$('input.ether-userAddress').val(App.account);
-		$('.ether-userAddress:not(:input)').text(App.account);
-		$('.ether-userAddress').attr('data-clipboard-text', App.account);
-		// User's ether balance UI
-		$('.ether-userBalance').text(App.etherBalance.toFixed(2));
-		// Every warning tootip
-		$('.tooltip-notOwner').attr('data-original-title', 'Need Authentication');
-		$('.tooltip-gotFrozen').attr('data-original-title', 'Sorry, you\'ve got frozen');
-		// Bind listener and init for address-copier
-		$('.address-copier').tooltip({
-			title: 'click to copy',
-			trigger: 'manual'
-		});
-		addressCopier_listener('.address-copier');
-		// UI for invalid input
-		$('input[type="text"] + .invalid-tooltip').text('I need a valid address');
-		$('input[type="number"] + .invalid-tooltip').text('Come on... give me a positive number');
-		// Enable every .myNumber tooltip
-		$('.myNumber').tooltip();
-		// Enable every carousel
-		$('.carousel').carousel();
-	},
-
 	startAsyncing: function() {
 		// Watch update of blockchain
-		web3.eth.filter('latest', (error, result) => {
-			if (error) {
-				console.error('App.startAsyncing()', error);
-				return;
-			}
+		web3.eth.filter('latest', (err, result) => {
+			if (err) throw err;
 			console.log('Block updated!');
 
 			// Re-fetch several times to avoid update lost
-			for (var i = 1; i < 2; i++) {
-				setTimeout(App.asyncList, 2000 * i);
-			}
+			setInterval(App.asyncList, 2000);
 		});
 	},
 
@@ -118,6 +111,7 @@ var App = {
 var Chart = {
 	timeS: [],
 	priceS: [],
+	updated: true,
 	init: function() {
 		$.ajax({ url: '/chartData' })
 			.then((r) => {
@@ -126,7 +120,8 @@ var Chart = {
 				setInterval(() =>
 					$.ajax({ url: "/price" }).then((p) => {
 						// If price is invalid (include not in trading time)
-						if (!p) return;
+						if (!p) return Chart.updated = false;
+						else Chart.updated = true;
 						// Otherwise get now time and add point
 						var x = new Date(Date.now());
 						x.setMilliseconds(0);
@@ -218,6 +213,7 @@ function multiSelector(preStr, arr, postStr) {
 
 // Formulate number display
 function myNumber(n) {
+	if (n == 0) return 0;
 	var d = Math.floor(Math.log(n) / Math.log(10)); // Digit of n
 	switch (d) {
 		case -3:
@@ -257,7 +253,10 @@ function numberWithCommas(n) {
 }
 
 function zip(arr1, arr2) {
-	return arr1.map((e, i) => [e, arr2[i]]);
+	if (arr1.length < arr2.length)
+		return arr1.map((e, i) => [e, arr2[i]]);
+	else
+		return arr2.map((e, i) => [arr1[i], e]);
 }
 
 function fromDateNumber(n) {

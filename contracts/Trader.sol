@@ -18,9 +18,10 @@ contract Trader is Owner
     address[] public subscriber;// Trader's subscribers
     mapping (address => uint) public shareOf;
 
-    event records(uint time, string stock, int price, int amount);
-    event appreciation(uint amount);
-    event bankrupted();
+    event Subscription(address indexed subscriber);
+    event Records(uint time, string stock, int price, int amount);
+    event Appreciation(uint amount);
+    event Bankrupted();
 
     /*
      * Initializes ownerList, basic imformation, and buy `_initFund` for registrant
@@ -68,6 +69,23 @@ contract Trader is Owner
     }
 
     /*
+     * Subscribe to this trader
+     */
+    function subscribe() external payable
+    {
+      require(msg.value >= fee);
+      require(!isSubscriber(msg.sender));
+
+      // Add buyer to subscriber list
+      subscriber.push(msg.sender);
+      // Trasfer subscription fee (ether) to registrant
+      ownerList[REGISTRANT].transfer(fee);
+
+      // Emit Event
+      emit Subscription(msg.sender);
+    }
+
+    /*
      * Transfer share
      *
      * @param _to Address of the recipient
@@ -99,10 +117,12 @@ contract Trader is Owner
      */
     function buy() external payable returns (uint amount)
     {
+        // Check if sender is subscriber
+        require(isSubscriber(msg.sender));
         // Unfrooze if trader's ether balance over than margin
         if(frozen && address(this).balance >= 1 ether) frozen = false;
         // Calculates the amount (deduct subscription fee)
-        amount = (msg.value - (isSubscriber(msg.sender)?0:fee)) / price;
+        amount = msg.value / price;
         // Transfer share
         _transfer(this, msg.sender, amount);
 
@@ -124,6 +144,8 @@ contract Trader is Owner
      */
     function sell(uint _amount) external returns (uint revenue)
     {
+        // Check if sender is subscriber
+        require(isSubscriber(msg.sender));
         // Calculates the revenue
         revenue = _amount * price;
         // Frooze if trader's ether balance will be lower than margin
@@ -157,10 +179,10 @@ contract Trader is Owner
     }
 
     // emit a transaction event
-    function record(uint _time, string _stock, int _price, int _amount) external onlyOwner(DEPLOYER)
+    function record(uint _time, string _stock, int _price, int _amount) external onlyOwner(REGISTRANT)
     {
         require(!frozen);
-        emit records(_time, _stock, _price, _amount);
+        emit Records(_time, _stock, _price, _amount);
     }
 
     /*
@@ -175,7 +197,7 @@ contract Trader is Owner
         // Appreciate the price (deduct splitting)
         price += msg.value * (1 ether-splitting) / 1 ether / (totalShare-shareOf[this]);
         // Emit event
-        emit appreciation(msg.value);
+        emit Appreciation(msg.value);
         // Send splitting benifit (ether) to all subscriber
         for(uint i=0; i<subscriber.length; i++)
             subscriber[i].transfer(
@@ -207,8 +229,8 @@ contract Trader is Owner
 
     function bankrupt() internal
     {
-        // Event event
-        emit bankrupted();
+        // Emit Event
+        emit Bankrupted();
         price = initPrice;
 
         for(uint i=0; i<subscriber.length; i++)

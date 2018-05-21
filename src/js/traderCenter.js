@@ -1,11 +1,18 @@
 'use strict';
 
+// Characters
+const JUGAR_LIAN = 0,
+	TSAO_TSAO = 1,
+	DIAO_CHAN = 2,
+	JOHN_FAT = 3,
+	LU_BOO = 4;
+
 var TraderCenter = {
 	contract: null,
 	instance: null,
 	registeredTrader: {}, // {traderAddress:traderObj} all registered traders
 	subscription: {}, // {traderAddress:(share,proportion)} traders whom user subscribed to
-	subscriber: {}, // {traderAddress:{subscriber:(share,proportion)}} user's trader's subscribers
+	userTrader: [], // User's all traders
 
 	init: function() {
 		// Get instance of TraderCenter.sol
@@ -13,14 +20,58 @@ var TraderCenter = {
 			TraderCenter.instance = instance;
 			// Init other after get instance
 			TraderCenter.getRegisteredTraders();
-			TraderCenter.bindEvents(); // Bind UI with listener
-			TraderCenter.listeners(); // Other listener
 		});
 	},
 
-	bindEvents: function() {},
+	register: function() {
+		var n = $('input[for="Name"]', '#register').val();
+		var s = $('input[for="Symbol"]', '#register').val();
+		var a = $('input[for="Abbreviation"]', '#register').val();
+		var p = $('input[for="Price"]', '#register').val();
+		var ts = $('input[for="Total Share"]', '#register').val();
+		var i = $('input[for="Initial"]', '#register').val();
+		var f = $('input[for="Fee"]', '#register').val();
+		var sp = $('input[for="Split Ratio"]', '#register').val();
+		var d = $('textarea', '#register').val();
+		var img = $('.carousel-item', '#register #characters-img').index($('.active', '#register'));
+		// console.log(n, s, a, p, ts, f, sr, d);
+		// console.log(img);
+		TraderCenter.instance.registerTrader(ts, web3.toWei(p), web3.toWei(f), web3.toWei(sp / 100), { value: web3.toWei(i) })
+			.then((r) => {
+					console.log(r);
+					$.ajax({
+						url: "/register",
+						data: {
+							address: r.logs['0'].args.trader,
+							name: n,
+							description: d,
+							abbr: a,
+							symbol: s,
+							img: img
+						},
+					});
+					swal({
+						title: '',
+						text: '<img src="img/characters/0.jpg" width="100%">\
+							' + img == JUGAR_LIAN ? 'I won\'t let you regret.' :
+							(img == TSAO_TSAO ? 'Victory is yours.' :
+								(img == DIAO_CHAN ? 'Shall we play the game?' :
+									(img == JOHN_FAT ? 'Nothing can stop me!' :
+										'No time to waste!'))) + '\
+							<footer class="blockquote-footer"><small><cite title="Source Title">\
+							' + n + ', born in block #13</cite></small></footer>',
+						confirmButtonText: img == JUGAR_LIAN ? 'Smart choice' :
+							(img == TSAO_TSAO ? 'I\'ll take it' :
+								(img == DIAO_CHAN ? 'Yeah' :
+									(img == JOHN_FAT ? 'GO!' :
+										'Come on!'))),
+						html: true
+					});
+					swal('Mined in block #' + r.receipt.blockNumber, n + ': "Hi, you\'ve just created me!"', 'success');
+				}
 
-	listeners: function() {},
+			).catch(console.error);
+	},
 
 	updateUI: function() {
 		// Subscription list (traders whom user subscribed to)
@@ -33,12 +84,12 @@ var TraderCenter = {
 			]);
 		arr.sort((a, b) => b[2] - a[2]);
 		// Subscription list UI
-		$('.subscription table tbody', '#tab-traderShare').empty();
+		$('.subscription table tbody', '#tab-traderCenter').empty();
 		$.each(arr, (i, [trader, share, proportion]) => {
 			var s = TraderCenter.registeredTrader[trader];
-			$('.subscription table > tbody', '#tab-traderShare').append('\
+			$('.subscription table > tbody', '#tab-traderCenter').append('\
         <tr style="cursor:pointer;"\
-					onclick="$(\'a[href=\\\'' + s.selectorID + '\\\']\').tab(\'show\')">\
+					onclick="$(\'a[href=\\\'' + s.DOM_ID + '\\\']\').tab(\'show\')">\
           <td>' + s.name + ' ( ' + s.abbr + ' )</td>\
           <td data-toggle="tooltip" class="myNumber"\
 						data-title="' + numberWithCommas(share) + ' ' + s.symbol + '\
@@ -51,22 +102,21 @@ var TraderCenter = {
 		// Subscriber list (user's trader's subscribers)
 		// Sort by proportion in user's each trader
 		var arr = [];
-		for (var t in TraderCenter.subscriber) {
+		for (var t in TraderCenter.userTrader) {
 			var arr2 = [];
-			for (var s in TraderCenter.subscriber[t])
-				// Only show subscribers except for user himself/herself
-				s == App.account ? null : arr2.push([t, s,
-					TraderCenter.subscriber[t][s].share,
-					TraderCenter.subscriber[t][s].proportion
+			for (var s in TraderCenter.userTrader[t].subscriber)
+				arr2.push([t, s,
+					TraderCenter.userTrader[t].subscriber[s].share,
+					TraderCenter.userTrader[t].subscriber[s].proportion
 				]);
 			arr2.sort((a, b) => b[3] - a[3]);
 			arr = arr.concat(arr2);
 		}
 		// Subscriber list UI
-		$('.subscriber table tbody', '#tab-traderShare').empty();
+		$('.subscriber table tbody', '#tab-traderCenter').empty();
 		$.each(arr, (i, [trader, subscriber, share, proportion]) => {
-			var s = TraderCenter.registeredTrader[trader];
-			$('.subscriber table > tbody', '#tab-traderShare').append('\
+			var t = TraderCenter.userTrader[trader];
+			$('.subscriber table > tbody', '#tab-traderCenter').append('\
         <tr>\
           <td' + (subscriber == App.account ? '>YOU' : ' data-simplebar\
 						data-toggle="tooltip" class="address-copier" \
@@ -75,70 +125,75 @@ var TraderCenter = {
           <td data-toggle="tooltip" class="myNumber" data-title="\
 						( ' + (proportion * 100).toFixed(1) + '% ) \
 						' + numberWithCommas(share) + ' \
-						' + s.symbol + '">' + myNumber(share) + ' ' + s.symbol + '\
+						' + t.symbol + '">' + myNumber(share) + ' ' + t.symbol + '\
           </td>\
         </tr>\
       ');
 		});
-
-		// Trader card information
-		$('.traderCard', '#tab-traderShare').empty();
-		$.each(TraderCenter.registeredTrader, (address, trader) =>
-			$('.traderCard').append('\
-        <div class="card">\
-				<div class="card-img-top"\
-					style="background-image: url(\'img/characters/' + trader.name + '.jpg\');\
-						background-size:cover;display: flex;">\
-					<div style="margin-top: 190px;background-color: rgba(0,0,0,0.3);\
-						color: white;" class="card-body">\
-						<h1 class="card-title">' + trader.name + '</h1>\
-            <blockquote class="blockquote mb-0">\
-              <p class="mb-1">' + trader.description + '</p>\
-              <footer class="blockquote-footer">\
-                <small>\
-                <cite title="Source Title">' + trader.name + '</cite>\
-              </small>\
-              </footer>\
-            </blockquote>\
-          </div>\
-					</div>\
-          <div class="card-footer">\
-            <small class="text-muted">Last Trade 1 day ago</small>\
-          </div>\
-        </div>\
-      	')
-		);
 		// Call global's UI update
 		App.updateUI();
 	},
 
-	getRegisteredTraders: function() {
-		TraderCenter.instance.RegisteredTrader(null, { fromBlock: 0 }, (error, result) => {
-			if (error) return console.error(error);
+	appendTraderCard: function(t) {
+		$('.traderCards', '#tab-traderCenter').append('\
+			<div class="card" id="card-' + t.address + '" style="cursor:pointer;"\
+				onclick="$(\'a[href=\\\'' + t.domID + '\\\']\').tab(\'show\')"\
+				onmouseover="$(\'.collapse\',this).collapse(\'show\')"\
+				onmouseleave="$(\'.collapse\',this).collapse(\'hide\')\">\
+			<div class="card-img-top"\
+				style="background-image: url(\'img/characters/' + t.img + '.jpg\');\
+					background-size:cover;display: flex;">\
+				<div style="margin-top: 190px;background-color: rgba(0,0,0,0.5);\
+					color: white;" class="card-body">\
+					<h1 class="card-title">' + t.name + '</h1>\
+					<div class="py-2">Price: <t class="price"></t> ETH / ' + t.symbol + '</div>\
+					<div class="py-2">Performance: <t class="performance"></t></div>\
+					<div class="collapse"><div class="py-2">Total Share: ' + myNumber(t.totalShare) + ' ' + t.symbol + '</div></div>\
+					<div class="collapse"><div class="py-2 mb-3 isSubscribed"></div></div>\
+					<div class="collapse"><blockquote class="mb-0">\
+						<p style="opacity:0.5" class="mb-1">' + t.description + '</p>\
+						<footer class="blockquote-footer">\
+							<small>\
+							<cite title="Source Title">' + t.name + '</cite>\
+						</small>\
+						</footer>\
+					</blockquote></div>\
+				</div>\
+				</div>\
+				<div class="card-footer">\
+					<small class="text-muted"><t class="last-action">No action yet...</t></small>\
+				</div>\
+			</div>\
+		');
+		t.updateUI();
+	},
 
-			var t = result.args.trader;
+	getRegisteredTraders: function() {
+		TraderCenter.instance.RegisteredTrader(null, { fromBlock: 0 }, (err, res) => {
+			if (err) throw err;
+
+			var t = res.args.trader;
 
 			// Create Trader Object from trader.js
-			createTrader(t).then((_traderObj) => {
-				TraderCenter.registeredTrader[t] = _traderObj;
-				if (!$.trim($('#navbarSupportedContent .dropdown-menu:first').html()))
-					$('#navbarSupportedContent .dropdown:first').hide();
-				if (!$.trim($('#navbarSupportedContent .dropdown-menu:last').html()))
-					$('#navbarSupportedContent .dropdown:last').hide();
-				// Subscriber & subscription
-				if (_traderObj.registrant == App.account) {
+			createTrader(t).then((_t) => {
+				TraderCenter.registeredTrader[t] = _t;
+				if (_t.registrant == App.account) {
 					// When registrant is user
-					TraderCenter.subscriber[t] = _traderObj.subscriber;
+					TraderCenter.userTrader.push(_t);
 					$('#navbarSupportedContent .dropdown:first').show();
-					_traderObj.initDOM();
-				} else if (App.account in _traderObj.subscriber) {
-					// When registrant is the other and user is their subscribers
-					TraderCenter.subscription[t] = _traderObj.subscriber[App.account];
-					$('#navbarSupportedContent .dropdown:last').show();
-					_traderObj.initDOM();
-				}
-				// Update trader center UI at last
+					_t.initDOM();
+				} else // When registrant is the other and user is his/her subscribers
+					// Watch user having subscription to this trader
+					_t.instance.Subscription({ subscriber: App.account }, { fromBlock: 0 }, (err, res) => {
+						if (err) throw err;
+						TraderCenter.subscription[t] = { share: 0, proportion: 0 };
+						$('#navbarSupportedContent .dropdown:last').show();
+						_t.initDOM();
+						TraderCenter.updateUI();
+					});
+
 				TraderCenter.updateUI();
+				TraderCenter.appendTraderCard(_t);
 			});
 		});
 	},

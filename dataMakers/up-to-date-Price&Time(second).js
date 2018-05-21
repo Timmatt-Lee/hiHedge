@@ -59,7 +59,7 @@ module.exports = () => {
 			minus_time = 1000 // Just simply minus 1 sec
 
 		// Write
-		timeS.unshift(formatDateNumber(time_iterator));
+		timeS.unshift(makeDateNumber(time_iterator));
 		timeS_ms.unshift(time_iterator.getTime());
 		// Iterate
 		time_iterator.setTime(time_iterator.getTime() - minus_time);
@@ -71,7 +71,7 @@ module.exports = () => {
 	return Promise.resolve({ timeS: timeS_ms, priceS: priceS });
 }
 
-function formatDateNumber(date) {
+function makeDateNumber(date) {
 	var Y = date.getUTCFullYear();
 	var M = date.getUTCMonth() + 1;
 	if (M < 10)

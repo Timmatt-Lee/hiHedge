@@ -6,10 +6,6 @@ var reloadify = require('reloadify');
 var path = require('path');
 var favicon = require('serve-favicon');
 
-var traderInfo = require('./routes/trader');
-var getPrice = require('./routes/price');
-var dataMaker = require('./dataMakers/up-to-date-Price&Time(second).js');
-
 // mysql
 var mysql = require('mysql');
 var con = mysql.createConnection({
@@ -19,9 +15,10 @@ var con = mysql.createConnection({
 	database: "hiHedge",
 	charset: "utf8mb4_unicode_520_ci"
 });
-con.connect(function(err) {
+
+con.connect((err) => {
 	if (err) throw err;
-	console.log("Connected!");
+	console.log("Data Base connected!");
 });
 
 // App
@@ -36,26 +33,30 @@ app.use(express.static(path.join(__dirname, 'src')));
 app.use(express.static(path.join(__dirname, 'build/contracts')));
 
 // Bind every request with mysql
-app.use(function(req, res, next) {
+app.use((req, res, next) => {
 	console.log('Request URL:', req.originalUrl);
 	req.con = con;
 	next();
 });
 
-// Fetch trader information from db
-app.use('/trader', traderInfo);
+// Register a new trader to db
+app.use('/register', require('./routes/register'));
 
+// Fetch trader information from db
+app.use('/trader', require('./routes/trader'));
+
+var getPrice = require('./routes/price');
 // Fetch price
 app.use('/price', (req, res, next) => {
 	getPrice().then((p) => {
-		if (!p) return res.send(null);
-		res.send(p);
-	});
+		if (!p) res.send(null);
+		else res.send(p);
+	}).catch(console.error);
 });
 
 // Run data maker, once complete fetch price online per second
 var chartData;
-dataMaker().then((r) => {
+require('./dataMakers/up-to-date-Price&Time(second).js')().then((r) => {
 	chartData = r;
 	// Fetch Price per second
 	setInterval(() =>
@@ -70,7 +71,7 @@ dataMaker().then((r) => {
 				chartData.timeS.push(x - i * 1000);
 				chartData.priceS.push(Number(p));
 			}
-		}), 1000);
+		}).catch(console.error), 1000);
 });
 
 // Fetch timeS and priceS
@@ -78,6 +79,4 @@ app.use('/chartData', (req, res, next) => {
 	res.send({ timeS: chartData.timeS, priceS: chartData.priceS });
 });
 
-app.listen(3000, function() {
-	console.log('App listening on port 3000!');
-});
+app.listen(3000, () => console.log('App is listening on port 3000!'));

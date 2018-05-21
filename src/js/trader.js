@@ -1,18 +1,46 @@
 'use strict'
 
+const TraderState = {
+	LONG_COVER: -3,
+	SHORT_SELL: -2,
+	SELL: -1,
+	STILL: 0,
+	BUY: 1,
+	LONG_BUY: 2,
+	SHORT_COVER: 3,
+};
+
+// Color
+const price_color = '#ffc107';
+const profit_color = '#099999';
+
+const long_color = '#28A745';
+const short_color = '#DC3545';
+const offset_color = '#6C757D';
+
+const xCursor_clr = '#099999';
+
+const TRADE_FEE = 0.6; // Unit is point
+const TAX_RATE = 0.0; // Transfer to `TRADE_FEE`, actual value is 0.00002
+const POINT = 50; // Unit is NTD; value of every point
+
 function createTrader(_address) {
 	var Trader = {
 		instance: null,
 		hasDOM: false,
 		address: 0x0, // Address of this contract
 		registrant: 0x0, // Address who registered this trader
-		selectorID: '', // JQ selector prefix
+		img: '', // Image url
+		domID: '', // JQ selector prefix
 		abbr: '', // Abbreviation of this trader's share
 		symbol: '', // Symbol of this trader
 		name: '', // Nmae of this trader
 		totalShare: 0,
-		subscriber: {}, // {subscriber<address>: {share: uint, proportion: float}}
+		subscriber: {}, // Object<address:{share: uint, proportion: float}>
 		price: 0, // Exchange rate of ETH per share
+		performance_base: 0, // Base of today's profit change
+		performance: 0, // Today's profit change
+		performance_html: '', // Html code for formatted today's profit change
 		splitting: 0, // Splitting ratio per share when appreciation
 		fee: 0, // Subscription fee
 		records: [], // Real world transaction record
@@ -23,19 +51,24 @@ function createTrader(_address) {
 		position_stateS: [], // Detailed position and price Array in time index
 		unreal_profitS: [],
 		real_profitS: [],
+		long_flag: [],
+		short_flag: [],
+		offset_flag: [],
 
 		init: function(_address) {
 			// Contract address
 			Trader.address = _address;
 			// JQ selector prefix
-			Trader.selectorID = '#tab-' + _address;
+			Trader.domID = '#tab-' + _address;
 			// Get contract instance
 			return App.contracts.Trader.at(_address)
 				.then((_instance) => Trader.instance = _instance)
 				.then(() => Trader.instance.ownerList(1)) // Get registrant
 				.then((_registrant) => Trader.registrant = _registrant)
-				.then(Trader.fetchData) // DataBase
-				.then(Trader.async); // BlockChain
+				.then(Trader.fetchData) // DB
+				.then(Trader.async) // BlockChain
+				.then(Trader.eventListener) // BlockChain event listener
+				.then(Trader.initRecords); // Calculate records to profitS, positionS...
 		},
 
 		// Data in blockChain
@@ -44,6 +77,8 @@ function createTrader(_address) {
 				.then((_totalShare) => Trader.totalShare = _totalShare)
 				.then(() => Trader.instance.price()) // Exchange rate of ETH per share
 				.then((_price) => Trader.price = _price)
+				.then(() => Trader.instance.fee()) // Subscription fee
+				.then((_fee) => Trader.fee = _fee)
 				.then(() => Trader.instance.getSubscribers()) // Addresses subscribed this trader
 				.then((_subscriber) =>
 					_subscriber.reduce((p, _) => // Traverse all subscribers
@@ -60,10 +95,10 @@ function createTrader(_address) {
 			return $.ajax({
 				url: "/trader",
 				data: { address: Trader.address },
-			}).then((data) => {
-				var l = ['name', 'description', 'abbr', 'symbol'];
+			}).then((res) => {
+				var l = ['name', 'description', 'abbr', 'symbol', 'img'];
 				for (var i in l)
-					Trader[l[i]] = data[l[i]];
+					Trader[l[i]] = res[l[i]];
 			});
 		},
 
@@ -73,53 +108,71 @@ function createTrader(_address) {
 			// Add a label in corresponding menu
 			$('#navbarSupportedContent .dropdown-menu:' +
 				(Trader.registrant == App.account ? 'first' : 'last')).append('\
-				<a class="dropdown-item trader-nav" href="' + Trader.selectorID + '"\
+				<a class="dropdown-item trader-nav" href="' + Trader.domID + '"\
 					data-toggle="list" role="tab">' + Trader.name + ' ' + Trader.symbol + '</a>');
 			// Only draw chart when switch th this tab
-			$('.trader-nav[href="' + Trader.selectorID + '"]').on('shown.bs.tab', Trader.drawChart);
+			$('.trader-nav[href="' + Trader.domID + '"]').on('shown.bs.tab', Trader.drawChart);
 			// Prepare insert html
 			$('.tab-content').append('<div id="tab-' + Trader.address + '" \
 				class="tab-trader container container-xxxl fade tab-pane" role="tabpanel"></div>');
 			// Insert HTML and update its UI after loading it
-			$(Trader.selectorID).load('trader.html', Trader.initUI);
+			$(Trader.domID).load('trader.html', Trader.initUI);
 		},
 
 		initUI: function() {
 			// Info card top image source
-			$('.info-img', Trader.selectorID).css(
-				'background-image', 'url("../img/characters/' + Trader.name + '.jpg")'
+			$('.info-img', Trader.domID).css(
+				'background-image', 'url("../img/characters/' + Trader.img + '.jpg")'
 			);
 			// If user owns the trader, then user can record transactions
 			if (Trader.registrant != App.account)
-				$('#record', Trader.selectorID).hide();
+				$('#record', Trader.domID).hide();
 
 			// Init carousel
 			var s1 = 'info-carousel-' + Trader.address;
-			$('.carousel', Trader.selectorID).attr('id', s1);
-			$('.carousel-indicators li', Trader.selectorID).attr('data-target', '#' + s1);
+			$('.carousel', Trader.domID).attr('id', s1);
+			$('.carousel-control-prev, .carousel-control-next', Trader.domID).attr('href', '#' + s1);
+			$('.carousel-indicators li', Trader.domID).attr('data-target', '#' + s1);
 
 			var s2 = 'chart-' + Trader.address;
-			$('#' + s1 + ' .carousel-inner', Trader.selectorID).append(
-				'<div class="carousel-item chart" style="padding: 15px 0px 0px 10px" id="' + s2 + '"></div>');
+			$('#' + s1 + ' .carousel-item:last', Trader.domID).attr('id', s2);
 
-			Trader.eventListener(); // BlockChain event listener
 			Trader.UIListener(); // bind UI with listener
 			Trader.updateUI();
 		},
 
 		updateUI: function() {
-			// if there is no DOM, don't updated
-			if (!Trader.hasDOM)
-				return;
+			// For concise code
+			var domID_1 = Trader.domID;
+			var domID_2 = '#card-' + Trader.address;
+			var domID_1_2 = domID_1 + ', ' + domID_2;
+
 			// Basic information
 			var l = ['name', 'description', 'abbr', 'symbol'];
 			for (var i in l)
-				$('.' + l[i], Trader.selectorID).text(Trader[l[i]]);
+				$('.' + l[i], domID_1_2).text(Trader[l[i]]);
 
-			// Numeral information
-			$('.price', Trader.selectorID).text(web3.fromWei(Trader.price));
-			$('.totalShare', Trader.selectorID).text(myNumber(Trader.totalShare));
-			$('.userShare', Trader.selectorID).text(myNumber(Trader.subscriber[App.account].share));
+			// Format information
+			$('.price', domID_1_2).html(myNumber(web3.fromWei(Trader.price)));
+			$('.totalShare', domID_1_2).text(myNumber(Trader.totalShare));
+
+			if (Trader.subscriber[App.account] != undefined) {
+				$('.isSubscribed', domID_2).html('My Share: <t class="userShare"></t> ' + Trader.symbol);
+				$('.userShare', domID_1_2).text(myNumber(Trader.subscriber[App.account].share));
+			} else {
+				$('.isSubscribed', domID_2).html('\
+					<div tabindex="0" data-toggle="tooltip" class="tooltip-login d-inline-block">\
+						<button class="btn btn-secondary" type="button">\
+							Subscribe (' + web3.fromWei(Trader.fee) + ' ETH)\
+						</button>\
+					</div>');
+				$('.isSubscribed button', domID_2).on('click', Trader.subscribe);
+			}
+
+			var recS = Trader.records;
+			if (recS.length > 0)
+				$('.last-action', domID_1_2).text(
+					'Last Action: ' + fromDateNumber(recS[recS.length - 1][0]).toLocaleString('ja'));
 
 			// Call global's UI update
 			App.updateUI();
@@ -127,19 +180,20 @@ function createTrader(_address) {
 
 		UIListener: function() {
 			// checkValidityMacro() generate listner to check validity input
-			checkValidityMacro($('#record', Trader.selectorID), Trader.record);
-			checkValidityMacro($('#transfer ', Trader.selectorID), Trader.transfer);
-			checkValidityMacro($('#sell', Trader.selectorID), Trader.sell);
-			checkValidityMacro($('#buy', Trader.selectorID), Trader.buy);
+
+			var domID = Trader.domID;
+			checkValidityMacro($('#record', domID), Trader.record);
+			checkValidityMacro($('#transfer ', domID), Trader.transfer);
+			checkValidityMacro($('#sell', domID), Trader.sell);
+			checkValidityMacro($('#buy', domID), Trader.buy);
 		},
 
 		eventListener: function() {
-			var timeOut = 0;
-			Trader.instance.records(null, { fromBlock: 0 }, (error, record) => {
-				if (error)
-					return console.error(error);
+			// Transaction records
+			Trader.instance.Records(null, { fromBlock: 0 }, (err, res) => {
+				if (err) throw err;
 
-				var r = record.args;
+				var r = res.args;
 				Trader.records.push([
 					r.time.toNumber(),
 					r.stock,
@@ -147,7 +201,7 @@ function createTrader(_address) {
 					r.amount.toNumber()
 				]);
 
-				$('.record table > tbody', Trader.selectorID).prepend('\
+				$('.record table > tbody', Trader.domID).prepend('\
 					<tr>\
 						<td>' + fromDateNumber(r.time.toNumber()).toLocaleString('ja') + '</td>\
 						<td>' + r.stock + '</td>\
@@ -155,117 +209,96 @@ function createTrader(_address) {
 						<td>' + r.amount.toNumber() + '</td>\
 					</tr>\
 				');
+
+				Trader.updateUI();
 			});
 		},
 
 		transfer: function() {
-			var _toAddress = $('#transfer input[placeholder="Address"]', Trader.selectorID).val();
-			var _amount = $('#transfer input[placeholder="Amount"]', Trader.selectorID).val();
+			var _toAddress = $('#transfer input[placeholder="Address"]', Trader.domID).val();
+			var _amount = $('#transfer input[placeholder="Amount"]', Trader.domID).val();
 
 			var _message = 'transfer ' + _amount + ' ' + Trader.symbol + ' to ' + _toAddress;
 			console.log('Pending: ' + _message + '...');
 
 			Trader.instance.transfer(_toAddress, _amount)
 				.then(() =>
-					swal('Mined in block #1324', _message, 'success')
+					web3.eth.getBlockNumber((e, bNum) => swal('Mined in block #' + bNum, _message, 'success'))
 
-				).catch((error) => console.error(error.message));
+				).catch(console.error);
 		},
 
 		sell: function() {
-			var _sellAmount = $('#sell input', Trader.selectorID).val();
-			var _message = 'sell ' + _sellAmount + ' ' + Trader.abbr;
+			var _sellAmount = $('#sell input', Trader.domID).val();
+			var _message = 'sell ' + _sellAmount + ' ' + Trader.symbol;
 
 			console.log('Pending: ' + _message + '...');
 
 			var _soldETH = 0;
 			Trader.instance.sell.call(_sellAmount)
-				.then((result) => {
-					_soldETH = web3.fromWei(result);
+				.then((res) => {
+					_soldETH = web3.fromWei(res);
 					return Trader.instance.sell(_sellAmount);
 
 				}).then(() =>
-					swal('Now only wait for mined', _message + ' for ' + _soldETH + ' ether!', 'success')
+					web3.eth.getBlockNumber((e, bNum) => swal('Mined in block #' + bNum, _message + ' for ' + _soldETH + ' ether!', 'success'))
 
-				).catch((error) => console.error(error.message));
+				).catch(console.error);
 		},
 
 		buy: function() {
-			var _buyValue = $('#buy input', Trader.selectorID).val();
+			var _buyValue = $('#buy input', Trader.domID).val();
 			var _message = ' by ' + _buyValue + ' ether';
 
-			console.log('Pending: buy ' + _buyValue + ' ' + Trader.abbr + _message + '...');
+			console.log('Pending: buy ' + Trader.symbol + _message + '...');
 
 			var _boughtAmount = 0;
 			Trader.instance.buy.call({ value: web3.toWei(_buyValue) })
-				.then((result) => {
-					_boughtAmount = result;
+				.then((res) => {
+					_boughtAmount = res;
 					return Trader.instance.buy({ value: web3.toWei(_buyValue) })
 
 				}).then(() =>
-					swal('Now only wait for mined', 'buy ' + _boughtAmount + ' ' + Trader.abbr + _message, 'success')
+					web3.eth.getBlockNumber((e, bNum) => swal('Mined in block #' + bNum, 'buy ' + _boughtAmount + ' ' + Trader.symbol + _message, 'success'))
 
-				).catch((error) => console.error(error.message));
+				).catch(console.error);
 		},
 
 		record: function() {
 			$.ajax({ url: "/price" }).then((p) => {
 				if (!p)
 					return swal('Not trading time', 'It\'s time for trader sleeping', 'warning');
-				var amount = $('#record input', Trader.selectorID).val();
+				var amount = $('#record input', Trader.domID).val();
 				Trader.instance.record(makeDateNumber(new Date(Date.now())), 'TXF', p, amount)
 					.then(() =>
-						swal('Mined in block #1325', Trader.name + '\'s transaction has been recorded on blockchain', 'success')
+						web3.eth.getBlockNumber((e, bNum) => swal('Mined in block #' + bNum, Trader.name + '\'s transaction has been recorded on blockchain', 'success'))
 
-					).catch((error) => console.error(error.message));
+					).catch(console.error);
 			})
 		},
 
-		drawChart: function() {
-			const TraderState = {
-				LONG_COVER: -3,
-				SHORT_SELL: -2,
-				SELL: -1,
-				STILL: 0,
-				BUY: 1,
-				LONG_BUY: 2,
-				SHORT_COVER: 3,
-			};
+		subscribe: function() {
+			Trader.instance.subscribe({ value: Trader.fee })
+				.then(() =>
+					web3.eth.getBlockNumber((e, bNum) => swal('Mined in block #' + bNum, 'YA! Now you are ' + Trader.name + '\'s Shareholder!', 'success'))
 
-			// Color
-			const price_color = '#ffc107';
-			const profit_color = '#099999';
+				).catch(console.error);
+		},
 
-			const long_color = '#28A745';
-			const short_color = '#DC3545';
-			const offset_color = '#6C757D';
+		initRecords: function() {
+			// For concise code
+			var recS = Trader.records;
+			var rec_pivot = 0; // Index of records that has been processed
+			var posS = Trader.positionS;
+			var pos_stateS = Trader.position_stateS;
+			var total_pS = Trader.totalProfitS;
+			var pS = Trader.profitS;
+			var unreal_pS = Trader.unreal_profitS;
+			var real_pS = Trader.real_profitS;
 
-			const xCursor_clr = '#099999';
-
-			const TRADE_FEE = 0.6; // Unit is point
-			const TAX_RATE = 0.0; // Transfer to `TRADE_FEE`, actual value is 0.00002
-			const POINT = 50; // Unit is NTD; value of every point
-
-			var real_profit = 0;
-			var unreal_profit = 0;
-			var pre_profit = 0;
-			var position_state = [];
-			var position = 0;
-
-			// Copy records
-			var records = Trader.records.slice();
-
-			var long_flag = []; // Flag data for chart
-			var short_flag = [];
-			var offset_flag = [];
-
-			// Clear the data, they will re-run
-			Trader.positionS = [];
-			Trader.totalProfitS = [];
-			Trader.profitS = [];
-			Trader.position_stateS = [];
-			Trader.unreal_profitS = [];
-			Trader.real_profitS = [];
+			var long_flag = Trader.long_flag;
+			var short_flag = Trader.short_flag;
+			var offset_flag = Trader.offset_flag;
 
 			var timeS = Chart.timeS;
 			var priceS = Chart.priceS;
@@ -273,72 +306,289 @@ function createTrader(_address) {
 			for (var i = 0; i < timeS.length; i++) {
 				var act = 0;
 				// If this record is on the right time
-				if (records.length > 0 && fromDateNumber(records[0][0]).getTime() == timeS[i]) {
+				if (rec_pivot < recS.length &&
+					fromDateNumber(recS[rec_pivot][0]).getTime() == timeS[i])
 					// Record its action at this time
-					act = records[0][3];
-					records.shift();
-				}
+					act = recS[rec_pivot++][3];
+
 				// Run action at this time and write the result
 				runActGetProfit(timeS[i], priceS[i], act)
 			}
 
-			// Draw chart
+			// Get today profit base
+			for (var j = timeS.length - 1; j >= 0; j--) {
+				var d = new Date(timeS[j]);
+				if (d.getHours() == 4 && d.getMinutes() == 59) {
+					Trader.performance_base = total_pS[j];
+					break;
+				}
+			}
+
+			// Set interval for every 1s
+			setInterval(() => {
+				// Today's profit Change
+				// Percntage of change
+				var p = Trader.performance = (total_pS[total_pS.length - 1] - Trader.performance_base) / Math.abs(Trader.performance_base);
+				var t_p_txt = '';
+				if (p > 0)
+					t_p_txt += '<span style="color:' + long_color + '">▲';
+				else if (p < 0)
+					t_p_txt += '<span style="color:' + short_color + '">▼';
+
+				t_p_txt += ' ' + Math.abs(total_pS[total_pS.length - 1] - Trader.performance_base) + ' NTD';
+				// Show '%' or 'x'
+				if (p != 0) {
+					t_p_txt += ' ('
+					if (Math.abs(p) < 2) // percentage < 200%
+						t_p_txt += (100 * p).toFixed(1) + '%';
+					else
+						t_p_txt += p.toFixed() + 'x';
+					t_p_txt += ')</span>';
+				}
+
+				Trader.performance_html = t_p_txt;
+				$('.performance', Trader.domID + ', #card-' + Trader.address).html(Trader.performance_html);
+
+				// If there are records that has not been drawn on chart
+				if (rec_pivot < recS.length) {
+					var start = timeS.indexOf(fromDateNumber(recS[rec_pivot][0]).getTime());
+					for (var i = start; i < timeS.length; i++) {
+						var act = 0;
+						// If this record is on the right time
+						if (rec_pivot < recS.length &&
+							fromDateNumber(recS[rec_pivot][0]).getTime() == timeS[i])
+							// Record its action at this time
+							act = recS[rec_pivot++][3];
+
+						// Run action at this time and write the result
+						runActGetProfit(timeS[i], priceS[i], act, i);
+					}
+					// Only tab is shown to render chart
+					if ($(Trader.domID).hasClass('show')) {
+						// Update chart
+						// @notice There is no way to update with animation in stock ctart
+
+						// Profit, Position, Long flag, Short flag, Offset flag
+						Trader.chart.series[0].setData(zip(timeS, total_pS));
+						Trader.chart.series[2].setData(zip(timeS, posS));
+						Trader.chart.series[3].setData(long_flag);
+						Trader.chart.series[4].setData(short_flag);
+						Trader.chart.series[5].setData(offset_flag);
+					}
+				}
+				// When timeS and priceS is not updated, break this loop
+				if (!Chart.updated) return;
+				// Add new point every second
+				var x = timeS[timeS.length - 1];
+				// Run with no action
+				runActGetProfit(x, priceS[priceS.length - 1], 0);
+				// Only tab is shown to render chart
+				if ($(Trader.domID).hasClass('show')) {
+					// Profit, Price, Position
+					Trader.chart.series[0].addPoint([x, total_pS[total_pS.length - 1]]);
+					Trader.chart.series[1].addPoint([x, priceS[priceS.length - 1]]);
+					Trader.chart.series[2].addPoint([x, posS[posS.length - 1]]);
+				}
+			}, 1000);
+
+
+			/*
+			 * Find the profit of long, short position and offset
+			 *
+			 * @param time Time in js default ms format
+			 * @param price Price at this `time`
+			 * @param act Action at this `time`
+			 */
+			function runActGetProfit(time, price, act, index = -1) {
+				// Get previous data
+				var a = real_pS;
+				var i = index == -1 ? a.length : index;
+				// @notice Base profit should be 1 for graph comparison
+				var real_profit = i == 0 ? 1 : a[i - 1];
+				a = unreal_pS;
+				var unreal_profit = i == 0 ? 0 : a[i - 1];
+				a = total_pS;
+				var pre_profit = i == 0 ? 0 : a[i - 1];
+				a = pos_stateS;
+				var position_state = i == 0 ? [] : a[i - 1];
+				a = posS;
+				var position = i == 0 ? 0 : a[i - 1];
+
+				////////////////////////////   START   ///////////////////////////
+
+				// Calculate unreal profit at first
+				unreal_profit = calCoverProfit(price, position_state);
+
+				if (act > 0) { // Buy
+					if (act + position > 0) // Long position after buying
+					{
+						if (position < 0) { // If it used to short position, short cover
+							unreal_profit = 0; // Turn to real profit
+							real_profit += calCoverProfit(price, position_state);
+							offset_flag.push(actFlagTooltip(TraderState.SHORT_COVER, time, price, -position));
+							position_state = []; // Clear because of offset
+							long_flag.push(actFlagTooltip(TraderState.LONG_BUY, time, price, act + position));
+							position += act; // Cover and add to long position
+							position_state.push([position, price]); // Buy long
+							real_profit -= calCost(price, position); // Cost of buying
+						} else { // Just add more long position
+							long_flag.push(actFlagTooltip(TraderState.LONG_BUY, time, price, act));
+							position += act; // Add more long position
+							position_state.push([act, price]); // Buy long
+							real_profit -= calCost(price, act); // Cost of buying
+						}
+					} else if (act + position < 0) // Still at short position after buying
+					{
+						// Cover part of short position
+						offset_flag.push(actFlagTooltip(TraderState.SHORT_COVER, time, price, act));
+						// Try to find the best price to cover
+						position_state.sort((a, b) => b[1] - a[1]); // Sort higher price with higher priority
+						// Traverse all short record to satisfy this action (short cover)
+						for (var j = 0; j < position_state.length && act != 0; j++) {
+							if (-act > position_state[j][0]) { // This record can satisfy the action
+								position += act;
+								position_state[j][0] += act;
+								real_profit += calProfit(price, position_state[j][1], -act);
+								unreal_profit -= calProfit(price, position_state[j][1], -act);
+								act = 0; // Action Satisfied
+							} else { // This record cannot satisfy action
+								position -= position_state[j][0]; // Short cover
+								act += position_state[j][0]; // Decrease act (position_state[J][0] is negative)
+								real_profit += calProfit(price, position_state[j][1], position_state[j][0]);
+								unreal_profit -= calProfit(price, position_state[j][1], position_state[j][0]);
+								position_state[j][0] = 0; // Exhaust the record
+							}
+						}
+					} else // act + position == 0,  offset for short position
+					{
+						unreal_profit = 0; // Turn to real profit
+						real_profit += calCoverProfit(price, position_state);
+						offset_flag.push(actFlagTooltip(TraderState.SHORT_COVER, time, price, act));
+						position = 0;
+						position_state = [];
+					}
+				} else if (act < 0) { // Sell
+					if (act + position < 0) // Short position after selling
+					{
+						if (position > 0) { // If it used to long position, long cover
+							unreal_profit = 0; // Turn to real profit
+							real_profit += calCoverProfit(price, position_state);
+							offset_flag.push(actFlagTooltip(TraderState.LONG_COVER, time, price, -position));
+							position_state = []; // Clear because of offset
+							short_flag.push(actFlagTooltip(TraderState.SHORT_SELL, time, price, act + position));
+							position += act; // Cover and add to short position
+							position_state.push([position, price]); // Short selling
+							real_profit -= calCost(price, position); // Cost of selling
+						} else { // Just add more long position
+							short_flag.push(actFlagTooltip(TraderState.SHORT_SELL, time, price, act));
+							position += act; // Add more short position
+							position_state.push([act, price]); // Short selling
+							real_profit -= calCost(price, act); // Cost of selling
+						}
+					} else if (act + position > 0) // Still long position after selling
+					{
+						// Cover part of long position
+						offset_flag.push(actFlagTooltip(TraderState.LONG_COVER, time, price, act));
+						// Try to find the best price to cover
+						position_state.sort((a, b) => a[1] - b[1]); // Sort lower price with higher priority
+						// Traverse all long record to satisfy this action (long cover)
+						for (var j = 0; j < position_state.length && act != 0; j++) {
+							if (-act < position_state[j][0]) { // This record can satisfy the action
+								position += act;
+								position_state[j][0] += act;
+								real_profit += calProfit(price, position_state[j][1], -act);
+								unreal_profit -= calProfit(price, position_state[j][1], -act);
+								act = 0; // Action Satisfied
+							} else { // This record cannot satisfy action
+								position -= position_state[j][0]; // long cover
+								act += position_state[j][0]; // Increase act (act is negative)
+								real_profit += calProfit(price, position_state[j][1], position_state[j][0]);
+								unreal_profit -= calProfit(price, position_state[j][1], position_state[j][0]);
+								position_state[j][0] = 0; // Exhaust the record
+							}
+						}
+					} else // act + position == 0, offset for long position
+					{
+						unreal_profit = 0; // Turn to real profit
+						real_profit += calCoverProfit(price, position_state);
+						offset_flag.push(actFlagTooltip(TraderState.LONG_COVER, time, price, act));
+						position = 0;
+						position_state = [];
+					}
+				}
+
+				if (index == -1) {
+					posS.push(position);
+					total_pS.push(real_profit + unreal_profit);
+					pS.push(real_profit + unreal_profit - pre_profit);
+					pos_stateS.push(position_state);
+					real_pS.push(real_profit);
+					unreal_pS.push(unreal_profit);
+				} else {
+					posS[index] = position;
+					total_pS[index] = real_profit + unreal_profit;
+					pS[index] = real_profit + unreal_profit - pre_profit;
+					pos_stateS[index] = position_state;
+					real_pS[index] = real_profit;
+					unreal_pS[index] = unreal_profit;
+				}
+			}
+
+			/*
+			 * Flag's tooltip data
+			 *
+			 * @param s State of trader's action
+			 * @param t time
+			 * @param p Now price
+			 * @param pos Position
+			 * @return flag's tooltip needed object
+			 */
+			function actFlagTooltip(s, t, p, pos) {
+				var text, title;
+				switch (s) {
+					case TraderState.LONG_BUY:
+						text = '<b><span style="color:' + long_color + '">Long ' + plural(Math.abs(pos), 'Lot') + '</span></b>';
+						title = 'L';
+						break;
+					case TraderState.SHORT_SELL:
+						text = '<b><span style="color:' + short_color + '">Short ' + plural(Math.abs(pos), 'Lot') + '</span></b>';
+						title = 'S';
+						break;
+					case TraderState.SHORT_COVER:
+					case TraderState.LONG_COVER:
+						text = '<b><span style="color:' + offset_color + '">Offset ' + plural(Math.abs(pos), 'Lot') + '</span></b>';
+						title = 'O';
+						break;
+				}
+				text += '　<span style="color:#aaaaaa">( ' + p + 'pt )</span>';
+				return { x: t, title: title, text: text };
+			}
+
+			function calCost(price, position) {
+				var tax = price * POINT * TAX_RATE;
+				return (TRADE_FEE * POINT + tax) * Math.abs(position);
+			}
+
+			function calProfit(price, hold_price, position) {
+				return (price - hold_price) * POINT * position - calCost(price, position)
+			}
+
+			function calCoverProfit(price, position_state) {
+				var pf = 0;
+				for (var i in position_state)
+					pf += calProfit(price, position_state[i][1], position_state[i][0])
+				return pf;
+			}
+
+		},
+
+		drawChart: function() {
 			Trader.chart = Highcharts.stockChart('chart-' + Trader.address, {
 				chart: {
 					backgroundColor: 'transparent',
 					plotBorderWidth: 0,
 					spacingRight: 0,
 					margin: [0, 90, 10, 10],
-					events: {
-						load: function() {
-							var timer = setInterval(() => {
-								// If tab is not shown, then stop timer
-								if (!$(Trader.selectorID).hasClass('show'))
-									clearInterval(timer);
-								// If there are records that has not been drawn on chart
-								if (records.length > 0) {
-									var start = timeS.indexOf(fromDateNumber(records[0][0]).getTime());
-									for (var i = start; i < timeS.length; i++) {
-										var act = 0;
-										// If this record is on the right time
-										if (records.length > 0 && fromDateNumber(records[0][0]).getTime() == timeS[i]) {
-											// Record its action at this time
-											act = records[0][3];
-											records.shift();
-										}
-										// Run action at this time and write the result
-										runActGetProfit(timeS[i], priceS[i], act, i)
-										// Profit
-										Trader.chart.series[0].point
-									}
-									// Update chart
-									// @notice There is no way to update with animation in stock ctart
-
-									// Profit
-									Trader.chart.series[0].setData(zip(timeS, Trader.totalProfitS));
-									// Position
-									Trader.chart.series[2].setData(zip(timeS, Trader.positionS));
-									// Long flag
-									Trader.chart.series[3].setData(long_flag);
-									// Short flag
-									Trader.chart.series[4].setData(short_flag);
-									// Offset flag
-									Trader.chart.series[5].setData(offset_flag);
-								}
-								// Add new point every second
-								var x = Chart.timeS[Chart.timeS.length - 1];
-								// Run with no action
-								runActGetProfit(x, Chart.priceS[Chart.priceS.length - 1], 0);
-								// Profit
-								Trader.chart.series[0].addPoint([x, Trader.totalProfitS[Trader.totalProfitS.length - 1]]);
-								// Price
-								Trader.chart.series[1].addPoint([x, Chart.priceS[Chart.priceS.length - 1]]);
-								// Position
-								Trader.chart.series[2].addPoint([x, Trader.positionS[Trader.positionS.length - 1]]);
-
-							}, 1000);
-						}
-					}
 				},
 
 				time: {
@@ -491,7 +741,7 @@ function createTrader(_address) {
 						type: 'areaspline',
 						name: 'Profit',
 						id: 'profit_line',
-						data: zip(timeS, Trader.totalProfitS), // Data for plot the graph
+						data: zip(Chart.timeS, Trader.totalProfitS), // Data for graph
 						lineWidth: 0,
 						color: profit_color,
 						yAxis: 0, // Binding the index of the objct of yAxis
@@ -503,9 +753,9 @@ function createTrader(_address) {
 								var text = '<span style="color:' + this.color + '">●</span> \
 														Total Profit: <b>' + this.y.toFixed(0) + '</b> NTD ';
 								// Percentage of change
-								var p = this.change / (this.y - this.change);
+								var p = this.change / Math.abs(this.y - this.change);
 								// If there is no change, then no need to show below
-								if (p == 0)
+								if (!p)
 									return text;
 								// Arrow and color of up/down
 								if (p > 0)
@@ -564,7 +814,7 @@ function createTrader(_address) {
 						type: 'line',
 						name: 'Price',
 						id: 'price_line',
-						data: zip(timeS, priceS),
+						data: zip(Chart.timeS, Chart.priceS),
 						color: Highcharts.Color(price_color).setOpacity(0.5).get('rgba'),
 						yAxis: 1,
 						zIndex: 0,
@@ -581,7 +831,7 @@ function createTrader(_address) {
 						type: 'column',
 						name: 'Position',
 						id: 'pos_chart',
-						data: zip(timeS, Trader.positionS),
+						data: zip(Chart.timeS, Trader.positionS),
 						yAxis: 2,
 						zIndex: -2,
 						// Don't use getExtremesFromAll, CPU will be dead
@@ -617,7 +867,7 @@ function createTrader(_address) {
 					// Long flag
 					{
 						type: 'flags',
-						data: long_flag,
+						data: Trader.long_flag,
 						color: Highcharts.Color(long_color).setOpacity(0.12).get('rgba'),
 						fillColor: Highcharts.Color(long_color).setOpacity(0.12).get('rgba'),
 						y: -38,
@@ -630,7 +880,7 @@ function createTrader(_address) {
 					// Short flag
 					{
 						type: 'flags',
-						data: short_flag,
+						data: Trader.short_flag,
 						color: Highcharts.Color(short_color).setOpacity(0.1).get('rgba'),
 						fillColor: Highcharts.Color(short_color).setOpacity(0.1).get('rgba'),
 						y: -25,
@@ -643,7 +893,7 @@ function createTrader(_address) {
 					// Offset flag
 					{
 						type: 'flags',
-						data: offset_flag,
+						data: Trader.offset_flag,
 						color: Highcharts.Color(offset_color).setOpacity(0.13).get('rgba'),
 						fillColor: Highcharts.Color(offset_color).setOpacity(0.13).get('rgba'),
 						y: 15,
@@ -655,193 +905,6 @@ function createTrader(_address) {
 					}
 				],
 			});
-
-			/*
-			 * Find the profit of long, short position and offset
-			 *
-			 * @param time Time in js default ms format
-			 * @param price Price at this `time`
-			 * @param act Action at this `time`
-			 */
-			function runActGetProfit(time, price, act, index = -1) {
-				// Get previous data
-				var a = Trader.real_profitS;
-				var i = index == -1 ? a.length : index;
-				real_profit = i == 0 ? 0 : a[i - 1];
-				a = Trader.unreal_profitS;
-				unreal_profit = i == 0 ? 0 : a[i - 1];
-				a = Trader.totalProfitS;
-				pre_profit = i == 0 ? 0 : a[i - 1];
-				a = Trader.position_stateS;
-				position_state = i == 0 ? [] : a[i - 1];
-				a = Trader.positionS;
-				position = i == 0 ? 0 : a[i - 1];
-
-				////////////////////////////   START   ///////////////////////////
-
-				// Calculate unreal profit at first
-				unreal_profit = calCoverProfit(price);
-
-				if (act > 0) { // Buy
-					if (act + position > 0) // Long position after buying
-					{
-						if (position < 0) { // If it used to short position, short cover
-							unreal_profit = 0; // Turn to real profit
-							real_profit += calCoverProfit(price);
-							offset_flag.push(actFlagTooltip(TraderState.SHORT_COVER, time, price, -position));
-							position_state = []; // Clear because of offset
-							long_flag.push(actFlagTooltip(TraderState.LONG_BUY, time, price, act + position));
-							position += act; // Cover and add to long position
-							position_state.push([position, price]); // Buy long
-							real_profit -= calCost(price, position); // Cost of buying
-						} else { // Just add more long position
-							long_flag.push(actFlagTooltip(TraderState.LONG_BUY, time, price, act));
-							position += act; // Add more long position
-							position_state.push([act, price]); // Buy long
-							real_profit -= calCost(price, act); // Cost of buying
-						}
-					} else if (act + position < 0) // Still at short position after buying
-					{
-						// Cover part of short position
-						offset_flag.push(actFlagTooltip(TraderState.SHORT_COVER, time, price, act));
-						// Try to find the best price to cover
-						position_state.sort((a, b) => b[1] - a[1]); // Sort higher price with higher priority
-						// Traverse all short record to satisfy this action (short cover)
-						for (var j = 0; j < position_state.length && act != 0; j++) {
-							if (-act > position_state[j][0]) { // This record can satisfy the action
-								position += act;
-								position_state[j][0] += act;
-								real_profit += calProfit(price, position_state[j][1], -act);
-								unreal_profit -= calProfit(price, position_state[j][1], -act);
-								act = 0; // Action Satisfied
-							} else { // This record cannot satisfy action
-								position -= position_state[j][0]; // Short cover
-								act += position_state[j][0]; // Decrease act (position_state[J][0] is negative)
-								real_profit += calProfit(price, position_state[j][1], position_state[j][0]);
-								unreal_profit -= calProfit(price, position_state[j][1], position_state[j][0]);
-								position_state[j][0] = 0; // Exhaust the record
-							}
-						}
-					} else // act + position == 0,  offset for short position
-					{
-						unreal_profit = 0; // Turn to real profit
-						real_profit += calCoverProfit(price);
-						offset_flag.push(actFlagTooltip(TraderState.SHORT_COVER, time, price, act));
-						position = 0;
-						position_state = [];
-					}
-				} else if (act < 0) { // Sell
-					if (act + position < 0) // Short position after selling
-					{
-						if (position > 0) { // If it used to long position, long cover
-							unreal_profit = 0; // Turn to real profit
-							real_profit += calCoverProfit(price);
-							offset_flag.push(actFlagTooltip(TraderState.LONG_COVER, time, price, -position));
-							position_state = []; // Clear because of offset
-							short_flag.push(actFlagTooltip(TraderState.SHORT_SELL, time, price, act + position));
-							position += act; // Cover and add to short position
-							position_state.push([position, price]); // Short selling
-							real_profit -= calCost(price, position); // Cost of selling
-						} else { // Just add more long position
-							short_flag.push(actFlagTooltip(TraderState.SHORT_SELL, time, price, act));
-							position += act; // Add more short position
-							position_state.push([act, price]); // Short selling
-							real_profit -= calCost(price, act); // Cost of selling
-						}
-					} else if (act + position > 0) // Still long position after selling
-					{
-						// Cover part of long position
-						offset_flag.push(actFlagTooltip(TraderState.LONG_COVER, time, price, act));
-						// Try to find the best price to cover
-						position_state.sort((a, b) => a[1] - b[1]); // Sort lower price with higher priority
-						// Traverse all long record to satisfy this action (long cover)
-						for (var j = 0; j < position_state.length && act != 0; j++) {
-							if (-act < position_state[j][0]) { // This record can satisfy the action
-								position += act;
-								position_state[j][0] += act;
-								real_profit += calProfit(price, position_state[j][1], -act);
-								unreal_profit -= calProfit(price, position_state[j][1], -act);
-								act = 0; // Action Satisfied
-							} else { // This record cannot satisfy action
-								position -= position_state[j][0]; // long cover
-								act += position_state[j][0]; // Increase act (act is negative)
-								real_profit += calProfit(price, position_state[j][1], position_state[j][0]);
-								unreal_profit -= calProfit(price, position_state[j][1], position_state[j][0]);
-								position_state[j][0] = 0; // Exhaust the record
-							}
-						}
-					} else // act + position == 0, offset for long position
-					{
-						unreal_profit = 0; // Turn to real profit
-						real_profit += calCoverProfit(price);
-						offset_flag.push(actFlagTooltip(TraderState.LONG_COVER, time, price, act));
-						position = 0;
-						position_state = [];
-					}
-				}
-
-				if (index == -1) {
-					Trader.positionS.push(position);
-					Trader.totalProfitS.push(real_profit + unreal_profit);
-					Trader.profitS.push(real_profit + unreal_profit - pre_profit);
-					Trader.position_stateS.push(position_state);
-					Trader.real_profitS.push(real_profit);
-					Trader.unreal_profitS.push(unreal_profit);
-				} else {
-					Trader.positionS[index] = position;
-					Trader.totalProfitS[index] = real_profit + unreal_profit;
-					Trader.profitS[index] = real_profit + unreal_profit - pre_profit;
-					Trader.position_stateS[index] = position_state;
-					Trader.real_profitS[index] = real_profit;
-					Trader.unreal_profitS[index] = unreal_profit;
-				}
-			}
-
-			/*
-			 * Flag's tooltip data
-			 *
-			 * @param s State of trader's action
-			 * @param t time
-			 * @param p Now price
-			 * @param pos Position
-			 * @return flag's tooltip needed object
-			 */
-			function actFlagTooltip(s, t, p, pos) {
-				var text, title;
-				switch (s) {
-					case TraderState.LONG_BUY:
-						text = '<b><span style="color:' + long_color + '">Long ' + plural(Math.abs(pos), 'Lot') + '</span></b>';
-						title = 'L';
-						break;
-					case TraderState.SHORT_SELL:
-						text = '<b><span style="color:' + short_color + '">Short ' + plural(Math.abs(pos), 'Lot') + '</span></b>';
-						title = 'S';
-						break;
-					case TraderState.SHORT_COVER:
-					case TraderState.LONG_COVER:
-						text = '<b><span style="color:' + offset_color + '">Offset ' + plural(Math.abs(pos), 'Lot') + '</span></b>';
-						title = 'O';
-						break;
-				}
-				text += '　<span style="color:#aaaaaa">( ' + p + 'pt )</span>';
-				return { x: t, title: title, text: text };
-			}
-
-			function calCost(price, position) {
-				var tax = price * POINT * TAX_RATE;
-				return (TRADE_FEE * POINT + tax) * Math.abs(position);
-			}
-
-			function calProfit(price, hold_price, position) {
-				return (price - hold_price) * POINT * position - calCost(price, position)
-			}
-
-			function calCoverProfit(price) {
-				var pf = 0;
-				for (var i in position_state)
-					pf += calProfit(price, position_state[i][1], position_state[i][0])
-				return pf;
-			}
 		},
 	}
 

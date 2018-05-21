@@ -186,7 +186,7 @@
   }
 
   .tab-trader .info-img {
-    background-position: calc(50% - 535px) 3.7rem;
+    background-position: calc(50% - 533px) 3.7rem;
   }
 }
 
@@ -232,4 +232,19 @@
 
 .tab-trader .info-card .col {
   padding: 0;
+}
+
+.traderCards .card-img-top {
+  background-size      : cover;
+  background-position-x: center;
+  display              : flex;
+}
+
+.info-card .carousel-control-next {
+  background-color: rgba(0,0,0,0.1);
+  height          : 50px;
+  border-radius   : 50%;
+  width           : 50px;
+  top             : calc(50% - 25px);
+  right           : 10px;
 }
