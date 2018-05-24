@@ -12,6 +12,10 @@
 }
 /* < md */
 @media (max-width:767px) {
+  .traderCards img {
+    display: none;
+  }
+
   .sidebar-md {
     /* under md, sidebar become to original col */
     width       : 100%;
@@ -41,11 +45,19 @@
 }
 /* > md */
 @media (min-width: 768px) {
+  .guide img {
+    right    : calc(100% - 50vw + 1px);
+    transform: rotate(20deg);
+    width    : 70px;
+    position : absolute;
+    top      : -10px;
+  }
+
   .sidebar-md {
     position   : sticky;
-    top        : 3.7rem;
+    top        : 3.8rem;
     /* Minus exactly the same as `top` above */
-    height     : calc(100vh - 3.7rem);
+    height     : calc(100vh - 3.8rem);
     width      : 40%;
     /* Leave margin for simple scroll bar */
     margin-left: 15px;
@@ -69,7 +81,7 @@
     max-width                : 500px;
     background-size          : 500px;
     background-attachment    : fixed;
-    background-position      : calc(50% - 170px) 3.7rem;
+    background-position      : calc(50% - 170px) 3.8rem;
     border-top-left-radius   : calc(.25rem - 1px);
     border-bottom-left-radius: calc(.25rem - 1px);
   }
@@ -93,11 +105,15 @@
 }
 /* > lg */
 @media (min-width: 992px) {
+  .guide img {
+    right: calc(100% - 50vw + 75px);
+  }
+
   .sidebar-lg {
     position   : sticky;
-    top        : 3.7rem;
+    top        : 3.8rem;
     /* Minus exactly the same as `top` above */
-    height     : calc(100vh - 3.7rem);
+    height     : calc(100vh - 3.8rem);
     width      : 40%;
     /* Leave margin for simple scroll bar */
     margin-left: 15px;
@@ -118,7 +134,7 @@
   }
 
   .tab-trader .info-img {
-    background-position: calc(50% - 250px) 3.7rem;
+    background-position: calc(50% - 250px) 3.8rem;
   }
 }
 /* < xl */
@@ -131,6 +147,10 @@
 }
 /* > xl */
 @media (min-width: 1200px) {
+  .guide img {
+    right: calc(100% - 50vw - 40px);
+  }
+
   .sidebar .table-hasAddress td.address-copier {
     max-width: calc(1140px *0.4 - 9.5rem);
   }
@@ -146,11 +166,18 @@
   }
 
   .tab-trader .info-img {
-    background-position: calc(50% - 304px) 3.7rem;
+    background-position: calc(50% - 304px) 3.8rem;
   }
 }
 /* > xxl */
 @media (min-width: 1440px) {
+  .guide img {
+    width    : 100px;
+    right    : calc(100% - 50vw + 5px);
+    top      : -35px;
+    transform: rotate(50deg);
+  }
+
   .container-xxl,
   .container-xxxl {
     max-width: 1380px;
@@ -162,11 +189,18 @@
   }
 
   .tab-trader .info-img {
-    background-position: calc(50% - 424px) 3.7rem;
+    background-position: calc(50% - 424px) 3.8rem;
   }
 }
 /* > xxxl */
 @media (min-width: 1680px) {
+  .guide img {
+    width    : 150px;
+    right    : calc(100% - 50vw - 15px);
+    top      : -100px;
+    transform: rotate(70deg);
+  }
+
   .container-xxxl {
     max-width: 1600px;
   }
@@ -186,7 +220,7 @@
   }
 
   .tab-trader .info-img {
-    background-position: calc(50% - 533px) 3.7rem;
+    background-position: calc(50% - 533px) 3.8rem;
   }
 }
 
@@ -247,4 +281,23 @@
   width           : 50px;
   top             : calc(50% - 25px);
   right           : 10px;
+}
+/* A black backgroud that filt on same level DOM */
+.black-filter {
+  top             : 0;
+  left            : 0;
+  opacity         : 0;
+  background-color: black;
+  width           : 100%;
+  height          : 100%;
+}
+/* DOM that lay upon filter */
+.upon-filter {
+  position: relative;
+  z-index : 1;
+}
+/* Recover styled button's origin style on hover */
+button[data-target="#register"]:hover {
+  /*   color:white !important; */
+  background-color: #f8f9fa !important;
 }

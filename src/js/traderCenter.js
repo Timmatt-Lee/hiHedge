@@ -1,9 +1,9 @@
 'use strict';
 
 // Characters
-const JUGAR_LIAN = 0,
+const DIAO_CHAN = 0,
 	TSAO_TSAO = 1,
-	DIAO_CHAN = 2,
+	JUGAR_LIAN = 2,
 	JOHN_FAT = 3,
 	LU_BOO = 4;
 
@@ -20,25 +20,24 @@ var TraderCenter = {
 			TraderCenter.instance = instance;
 			// Init other after get instance
 			TraderCenter.getRegisteredTraders();
+			TraderCenter.listener();
 		});
 	},
 
 	register: function() {
-		var n = $('input[for="Name"]', '#register').val();
-		var s = $('input[for="Symbol"]', '#register').val();
-		var a = $('input[for="Abbreviation"]', '#register').val();
-		var p = $('input[for="Price"]', '#register').val();
-		var ts = $('input[for="Total Share"]', '#register').val();
-		var i = $('input[for="Initial"]', '#register').val();
-		var f = $('input[for="Fee"]', '#register').val();
-		var sp = $('input[for="Split Ratio"]', '#register').val();
+		var n = $('input[for="name"]', '#register').val();
+		var s = $('input[for="symbol"]', '#register').val();
+		var a = $('input[for="abbreviation"]', '#register').val();
+		var p = $('input[for="price"]', '#register').val();
+		var ts = $('input[for="totalShare"]', '#register').val();
+		var i = $('input[for="seedFund"]', '#register').val();
+		var f = $('input[for="fee"]', '#register').val();
+		var sp = $('input[for="split"]', '#register').val();
 		var d = $('textarea', '#register').val();
 		var img = $('.carousel-item', '#register #characters-img').index($('.active', '#register'));
-		// console.log(n, s, a, p, ts, f, sr, d);
 		// console.log(img);
 		TraderCenter.instance.registerTrader(ts, web3.toWei(p), web3.toWei(f), web3.toWei(sp / 100), { value: web3.toWei(i) })
-			.then((r) => {
-					console.log(r);
+			.then(r => {
 					$.ajax({
 						url: "/register",
 						data: {
@@ -52,12 +51,12 @@ var TraderCenter = {
 					});
 					swal({
 						title: '',
-						text: '<img src="img/characters/0.jpg" width="100%">\
-							' + img == JUGAR_LIAN ? 'I won\'t let you regret.' :
+						text: '<img src="img/characters/' + img + '.jpg" width="100%">\
+							' + (img == JUGAR_LIAN ? 'I won\'t let you regret.' :
 							(img == TSAO_TSAO ? 'Victory is yours.' :
 								(img == DIAO_CHAN ? 'Shall we play the game?' :
 									(img == JOHN_FAT ? 'Nothing can stop me!' :
-										'No time to waste!'))) + '\
+										'No time to waste!')))) + '\
 							<footer class="blockquote-footer"><small><cite title="Source Title">\
 							' + n + ', born in block #13</cite></small></footer>',
 						confirmButtonText: img == JUGAR_LIAN ? 'Smart choice' :
@@ -67,7 +66,7 @@ var TraderCenter = {
 										'Come on!'))),
 						html: true
 					});
-					swal('Mined in block #' + r.receipt.blockNumber, n + ': "Hi, you\'ve just created me!"', 'success');
+					// swal('Mined in block #' + r.receipt.blockNumber, n + ': "Hi, you\'ve just created me!"', 'success');
 				}
 
 			).catch(console.error);
@@ -89,7 +88,7 @@ var TraderCenter = {
 			var s = TraderCenter.registeredTrader[trader];
 			$('.subscription table > tbody', '#tab-traderCenter').append('\
         <tr style="cursor:pointer;"\
-					onclick="$(\'a[href=\\\'' + s.DOM_ID + '\\\']\').tab(\'show\')">\
+					onclick="$(\'a[href=\\\'' + s.domID + '\\\']\').tab(\'show\')">\
           <td>' + s.name + ' ( ' + s.abbr + ' )</td>\
           <td data-toggle="tooltip" class="myNumber"\
 						data-title="' + numberWithCommas(share) + ' ' + s.symbol + '\
@@ -117,7 +116,8 @@ var TraderCenter = {
 		$.each(arr, (i, [trader, subscriber, share, proportion]) => {
 			var t = TraderCenter.userTrader[trader];
 			$('.subscriber table > tbody', '#tab-traderCenter').append('\
-        <tr>\
+        <tr style="cursor:pointer;"\
+					onclick="$(\'a[href=\\\'' + t.domID + '\\\']\').tab(\'show\')">\
           <td' + (subscriber == App.account ? '>YOU' : ' data-simplebar\
 						data-toggle="tooltip" class="address-copier" \
 						data-clipboard-text="' + subscriber + '">' + subscriber) + '\
@@ -135,6 +135,10 @@ var TraderCenter = {
 	},
 
 	appendTraderCard: function(t) {
+		if (!$('.traderCards', '#tab-traderCenter').hasClass('card-columns')) {
+			$('.traderCards', '#tab-traderCenter').addClass('card-columns');
+			$('.traderCards', '#tab-traderCenter').empty();
+		}
 		$('.traderCards', '#tab-traderCenter').append('\
 			<div class="card" id="card-' + t.address + '" style="cursor:pointer;"\
 				onclick="$(\'a[href=\\\'' + t.domID + '\\\']\').tab(\'show\')"\
@@ -150,21 +154,20 @@ var TraderCenter = {
 					<div class="py-2">Performance: <t class="performance"></t></div>\
 					<div class="collapse"><div class="py-2">Total Share: ' + myNumber(t.totalShare) + ' ' + t.symbol + '</div></div>\
 					<div class="collapse"><div class="py-2 mb-3 isSubscribed"></div></div>\
-					<div class="collapse"><blockquote class="mb-0">\
+					' + (t.description ? '<div class="collapse"><blockquote class="mb-0">\
 						<p style="opacity:0.5" class="mb-1">' + t.description + '</p>\
 						<footer class="blockquote-footer">\
 							<small>\
 							<cite title="Source Title">' + t.name + '</cite>\
 						</small>\
 						</footer>\
-					</blockquote></div>\
+					</blockquote></div>' : '') + '\
 				</div>\
 				</div>\
 				<div class="card-footer">\
 					<small class="text-muted"><t class="last-action">No action yet...</t></small>\
 				</div>\
-			</div>\
-		');
+			</div>');
 		t.updateUI();
 	},
 
@@ -175,7 +178,7 @@ var TraderCenter = {
 			var t = res.args.trader;
 
 			// Create Trader Object from trader.js
-			createTrader(t).then((_t) => {
+			createTrader(t).then(_t => {
 				TraderCenter.registeredTrader[t] = _t;
 				if (_t.registrant == App.account) {
 					// When registrant is user
@@ -197,4 +200,18 @@ var TraderCenter = {
 			});
 		});
 	},
+
+	listener: function() {
+		// Bind check validity to register trader form
+		checkValidityMacro($('#register'), TraderCenter.register);
+		// only detect scroll position under md
+		if ($(window).width() < 768)
+			$(window).scroll(() =>
+				$('.black-filter').css('opacity',
+					(($(window).scrollTop() + $(window).height()) - $(document).height() + $('.guide').height()) / $('.guide').height() - 0.3
+				)
+			);
+		else
+			$('.black-filter').hide();
+	}
 };

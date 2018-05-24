@@ -31,7 +31,7 @@ var App = {
 	},
 
 	initContract: function(name) {
-		return $.getJSON(name + '.json').success((data) => {
+		return $.getJSON(name + '.json').success(data => {
 			// Get the necessary contract artifact file and instantiate it with truffle-contract.
 			App.contracts[name] = TruffleContract(data);
 			// Set the provider for our contract.
@@ -81,8 +81,22 @@ var App = {
 				});
 				addressCopier_listener('.address-copier');
 				// UI for invalid input
-				$('input[type="text"] + .invalid-tooltip').text('I need a valid address');
-				$('input[type="number"] + .invalid-tooltip').text('Come on... give me a positive number');
+				$('input[for*="Address"] + .invalid-tooltip').text('I need a valid address');
+				$(multiSelector('input[', ['for*="Amount', 'type="number'], '"] + .invalid-tooltip')).text('Come on... give me a positive number');
+				// UI for invalid input (at trader tab)
+				$('input[for="record"] + .invalid-tooltip').text('Only integer accepted');
+				$('input[for="transfer-Amount"] + .invalid-tooltip').text('Don\'t overflow your shares');
+				$('input[for="sell"] + .invalid-tooltip').text('Don\'t overflow your shares');
+				$('input[for="buy"] + .invalid-tooltip').text('You can only buy integral shares');
+				// UI for invalid input (register modal)
+				$('input[for="name"] + .invalid-tooltip').text('Give me a name!');
+				$('input[for="symbol"] + .invalid-tooltip').text('Try some cute symbol');
+				$('input[for="abbreviation"] + .invalid-tooltip').text('My nick name');
+				$('input[for="price"] + .invalid-tooltip').text('Start with a nice price');
+				$('input[for="totalShare"] + .invalid-tooltip').text('Try balanced with price');
+				$('input[for="seedFund"] + .invalid-tooltip').html('Margin: 1 ETH, and there is only 100% <t class="symbol"></t>');
+				$('input[for="fee"] + .invalid-tooltip').text('Unreasonable...');
+				$('input[for="split"] + .invalid-tooltip').text('0% ~ 100%');
 				// Enable every .myNumber tooltip
 				$('.myNumber').tooltip();
 			});
@@ -114,11 +128,11 @@ var Chart = {
 	updated: true,
 	init: function() {
 		$.ajax({ url: '/chartData' })
-			.then((r) => {
+			.then(r => {
 				Chart.timeS = r.timeS;
 				Chart.priceS = r.priceS;
 				setInterval(() =>
-					$.ajax({ url: "/price" }).then((p) => {
+					$.ajax({ url: "/price" }).then(p => {
 						// If price is invalid (include not in trading time)
 						if (!p) return Chart.updated = false;
 						else Chart.updated = true;
@@ -142,7 +156,7 @@ $(function() {
 // Generator for `_selector` to check validity input
 function checkValidityMacro(_selector, _function) {
 	// As soon as click, check if all input valid then call `_function`
-	_selector.find('button').on('click', () => {
+	_selector.find('button:last').on('click', () => {
 		// Traverse every child under `_selector`
 		var _selectArr = _selector.find('input');
 		var _flag = true;
@@ -164,9 +178,9 @@ function checkValidityMacro(_selector, _function) {
 // Listener for address-copier
 function addressCopier_listener(_selector) {
 	$(_selector).on({
-		'mouseenter': (event) => $(event.delegateTarget).tooltip('show'),
-		'mouseleave': (event) => $(event.delegateTarget).tooltip('hide'),
-		'click': (event) => {
+		'mouseenter': event => $(event.delegateTarget).tooltip('show'),
+		'mouseleave': event => $(event.delegateTarget).tooltip('hide'),
+		'click': event => {
 			var t = $(event.delegateTarget);
 			// Use DOM attr to determine if "Copied" hovering
 			var tID = t.attr('timeoutID');
@@ -192,7 +206,7 @@ function addressCopier_listener(_selector) {
 				t.tooltip('hide');
 				t.attr('data-original-title', 'click to copy');
 				// Activate listener for `mouseleave`
-				t.on('mouseleave', (event) => t.tooltip('hide'));
+				t.on('mouseleave', event => t.tooltip('hide'));
 				// Remove DOM attr for checking scheduling
 				t.removeAttr('timeoutID');
 			}, 3000));
@@ -214,7 +228,7 @@ function multiSelector(preStr, arr, postStr) {
 // Formulate number display
 function myNumber(n) {
 	if (n == 0) return 0;
-	var d = Math.floor(Math.log(n) / Math.log(10)); // Digit of n
+	var d = Math.floor(Math.log(Math.abs(n)) / Math.log(10)); // Digit of n
 	switch (d) {
 		case -3:
 		case -2:

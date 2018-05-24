@@ -16,7 +16,7 @@ var con = mysql.createConnection({
 	charset: "utf8mb4_unicode_520_ci"
 });
 
-con.connect((err) => {
+con.connect(err => {
 	if (err) throw err;
 	console.log("Data Base connected!");
 });
@@ -48,7 +48,7 @@ app.use('/trader', require('./routes/trader'));
 var getPrice = require('./routes/price');
 // Fetch price
 app.use('/price', (req, res, next) => {
-	getPrice().then((p) => {
+	getPrice().then(p => {
 		if (!p) res.send(null);
 		else res.send(p);
 	}).catch(console.error);
@@ -56,11 +56,11 @@ app.use('/price', (req, res, next) => {
 
 // Run data maker, once complete fetch price online per second
 var chartData;
-require('./dataMakers/up-to-date-Price&Time(second).js')().then((r) => {
+require('./dataMakers/up-to-date-Price&Time(second).js')().then(r => {
 	chartData = r;
 	// Fetch Price per second
 	setInterval(() =>
-		getPrice().then((p) => {
+		getPrice().then(p => {
 			if (!p) return;
 			var x = new Date(Date.now());
 			x.setMilliseconds(0);

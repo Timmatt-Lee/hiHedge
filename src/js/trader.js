@@ -62,9 +62,9 @@ function createTrader(_address) {
 			Trader.domID = '#tab-' + _address;
 			// Get contract instance
 			return App.contracts.Trader.at(_address)
-				.then((_instance) => Trader.instance = _instance)
+				.then(_instance => Trader.instance = _instance)
 				.then(() => Trader.instance.ownerList(1)) // Get registrant
-				.then((_registrant) => Trader.registrant = _registrant)
+				.then(_registrant => Trader.registrant = _registrant)
 				.then(Trader.fetchData) // DB
 				.then(Trader.async) // BlockChain
 				.then(Trader.eventListener) // BlockChain event listener
@@ -74,17 +74,17 @@ function createTrader(_address) {
 		// Data in blockChain
 		async: function() {
 			return Trader.instance.totalShare() // Total share
-				.then((_totalShare) => Trader.totalShare = _totalShare)
+				.then(_totalShare => Trader.totalShare = _totalShare)
 				.then(() => Trader.instance.price()) // Exchange rate of ETH per share
-				.then((_price) => Trader.price = _price)
+				.then(_price => Trader.price = _price)
 				.then(() => Trader.instance.fee()) // Subscription fee
-				.then((_fee) => Trader.fee = _fee)
+				.then(_fee => Trader.fee = _fee)
 				.then(() => Trader.instance.getSubscribers()) // Addresses subscribed this trader
-				.then((_subscriber) =>
+				.then(_subscriber =>
 					_subscriber.reduce((p, _) => // Traverse all subscribers
 						p.then(() =>
 							Trader.instance.shareOf(_) // Get each subscriber's share
-						).then((_share) => // Record in {share: uint,proportion: float}
+						).then(_share => // Record in {share: uint,proportion: float}
 							Trader.subscriber[_] = { share: _share, proportion: _share / Trader.totalShare }
 						), Promise.resolve())
 				).then(Trader.updateUI);
@@ -95,7 +95,7 @@ function createTrader(_address) {
 			return $.ajax({
 				url: "/trader",
 				data: { address: Trader.address },
-			}).then((res) => {
+			}).then(res => {
 				var l = ['name', 'description', 'abbr', 'symbol', 'img'];
 				for (var i in l)
 					Trader[l[i]] = res[l[i]];
@@ -148,9 +148,7 @@ function createTrader(_address) {
 			var domID_1_2 = domID_1 + ', ' + domID_2;
 
 			// Basic information
-			var l = ['name', 'description', 'abbr', 'symbol'];
-			for (var i in l)
-				$('.' + l[i], domID_1_2).text(Trader[l[i]]);
+			['name', 'description', 'abbr', 'symbol'].map(_ => $('.' + _, domID_1_2).text(Trader[_]));
 
 			// Format information
 			$('.price', domID_1_2).html(myNumber(web3.fromWei(Trader.price)));
@@ -169,10 +167,15 @@ function createTrader(_address) {
 				$('.isSubscribed button', domID_2).on('click', Trader.subscribe);
 			}
 
+			// Last Action time
 			var recS = Trader.records;
 			if (recS.length > 0)
 				$('.last-action', domID_1_2).text(
 					'Last Action: ' + fromDateNumber(recS[recS.length - 1][0]).toLocaleString('ja'));
+
+			// Restrict input form
+			$('#transfer input[for="transfer-Amount"], #sell input', domID_1).attr('max', Trader.subscriber[App.account].share)
+			$('#buy input', domID_1).attr({ step: web3.fromWei(Trader.price), min: web3.fromWei(Trader.price) })
 
 			// Call global's UI update
 			App.updateUI();
@@ -236,7 +239,7 @@ function createTrader(_address) {
 
 			var _soldETH = 0;
 			Trader.instance.sell.call(_sellAmount)
-				.then((res) => {
+				.then(res => {
 					_soldETH = web3.fromWei(res);
 					return Trader.instance.sell(_sellAmount);
 
@@ -254,7 +257,7 @@ function createTrader(_address) {
 
 			var _boughtAmount = 0;
 			Trader.instance.buy.call({ value: web3.toWei(_buyValue) })
-				.then((res) => {
+				.then(res => {
 					_boughtAmount = res;
 					return Trader.instance.buy({ value: web3.toWei(_buyValue) })
 
@@ -265,7 +268,7 @@ function createTrader(_address) {
 		},
 
 		record: function() {
-			$.ajax({ url: "/price" }).then((p) => {
+			$.ajax({ url: "/price" }).then(p => {
 				if (!p)
 					return swal('Not trading time', 'It\'s time for trader sleeping', 'warning');
 				var amount = $('#record input', Trader.domID).val();
