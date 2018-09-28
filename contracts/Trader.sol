@@ -178,8 +178,8 @@ contract Trader is Owner
         splitting = _splitting;
     }
 
-    // emit a transaction event
-    function record(uint _time, string _stock, int _price, int _amount) external onlyOwner(REGISTRANT)
+    // emit a transaction event, and limit to DEPLOYER to maintain the mining quality
+    function record(uint _time, string _stock, int _price, int _amount) external onlyOwner(DEPLOYER)
     {
         require(!frozen);
         emit Records(_time, _stock, _price, _amount);

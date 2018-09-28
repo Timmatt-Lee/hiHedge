@@ -157,6 +157,10 @@ function createTrader(_address) {
 			if (Trader.subscriber[App.account] != undefined) {
 				$('.isSubscribed', domID_2).html('My Share: <t class="userShare"></t> ' + Trader.symbol);
 				$('.userShare', domID_1_2).text(myNumber(Trader.subscriber[App.account].share));
+				// Restrict input form
+				$('#transfer input[for="transfer-Amount"], #sell input', domID_1).attr('max', Trader.subscriber[App.account].share)
+				$('#buy input', domID_1).attr({ step: web3.fromWei(Trader.price), min: web3.fromWei(Trader.price) })
+
 			} else {
 				$('.isSubscribed', domID_2).html('\
 					<div tabindex="0" data-toggle="tooltip" class="tooltip-login d-inline-block">\
@@ -172,10 +176,6 @@ function createTrader(_address) {
 			if (recS.length > 0)
 				$('.last-action', domID_1_2).text(
 					'Last Action: ' + fromDateNumber(recS[recS.length - 1][0]).toLocaleString('ja'));
-
-			// Restrict input form
-			$('#transfer input[for="transfer-Amount"], #sell input', domID_1).attr('max', Trader.subscriber[App.account].share)
-			$('#buy input', domID_1).attr({ step: web3.fromWei(Trader.price), min: web3.fromWei(Trader.price) })
 
 			// Call global's UI update
 			App.updateUI();
@@ -204,14 +204,14 @@ function createTrader(_address) {
 					r.amount.toNumber()
 				]);
 
-				$('.record table > tbody', Trader.domID).prepend('\
+				setTimeout(()=>$('.record table > tbody', Trader.domID).prepend('\
 					<tr>\
 						<td>' + fromDateNumber(r.time.toNumber()).toLocaleString('ja') + '</td>\
 						<td>' + r.stock + '</td>\
 						<td>' + r.price.toNumber() + '</td>\
 						<td>' + r.amount.toNumber() + '</td>\
 					</tr>\
-				');
+				'),5000);
 
 				Trader.updateUI();
 			});

@@ -56,7 +56,7 @@ app.use('/price', (req, res, next) => {
 
 // Run data maker, once complete fetch price online per second
 var chartData;
-require('./dataMakers/up-to-date-Price&Time(second).js')().then(r => {
+require('./dataMakers/timeMaker(second).js')().then(r => {
 	chartData = r;
 	// Fetch Price per second
 	setInterval(() =>
@@ -67,10 +67,9 @@ require('./dataMakers/up-to-date-Price&Time(second).js')().then(r => {
 			x = x.getTime();
 			// Fix holes in time elapse
 			var preT = chartData.timeS[chartData.timeS.length - 1];
-			for (var i = (x - preT - 1000) / 1000; i >= 0; i--) {
+			chartData.priceS = require('./dataMakers/data/priceS.js');
+			for (var i = (x - preT - 1000) / 1000; i >= 0; i--) 
 				chartData.timeS.push(x - i * 1000);
-				chartData.priceS.push(Number(p));
-			}
 		}).catch(console.error), 1000);
 });
 
