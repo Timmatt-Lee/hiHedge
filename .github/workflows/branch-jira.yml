@@ -3,7 +3,7 @@ on:
     branches:
       - master
 
-name: Jira
+name: Create Jira task when branch out
 
 jobs:
   build:
