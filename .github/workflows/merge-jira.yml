@@ -25,8 +25,6 @@ jobs:
           issuetype: Task
           summary: |
             [Cloud] Build completed for ${{ github.ref }}
-          components:
-            - Cloud - Noodoe App
 
       - name: Transition issue
         uses: atlassian/gajira-transition@master
