@@ -20,12 +20,13 @@ jobs:
       - name: Create new issue
         id: create
         uses: atlassian/gajira-create@master
-        project: NE
-        issuetype: Build
-        summary: |
-          Build completed for ${{ github.repository }}
-        description: |
-          Compare branch
+        with:
+          project: NE
+          issuetype: Build
+          summary: |
+            Build completed for ${{ github.repository }}
+          description: |
+            Compare branch
 
       - name: Transition issue
         uses: atlassian/gajira-transition@master
