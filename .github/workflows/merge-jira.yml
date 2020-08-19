@@ -26,5 +26,5 @@ jobs:
       - name: Transition issue
         uses: atlassian/gajira-transition@master
         with:
-          issue: ${{ steps.find.outputs.issue }}
-          transition: Start Progress
+          issue: [Cloud] ${{ steps.find.outputs.issue }}
+          transition: Close
