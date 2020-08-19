@@ -1,14 +1,15 @@
 on:
-  create:
+  pull_request:
+    types: [opened]
     branches:
       - master
 
-name: Create Jira task when branch out
+name: Create Jira task when pull request creation
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    name: Jira
+    name: Create Jira task when pull request creation
     steps:
       - name: Login
         uses: atlassian/gajira-login@master
@@ -31,3 +32,18 @@ jobs:
         with:
           issue: ${{ steps.create.outputs.issue }}
           transition: Start Progress
+
+      - name: Rename pull request title
+        uses: tzkhan/pr-update-action@master
+        with:
+          repo-token: "${{ secrets.GITHUB_TOKEN }}"
+          branch-regex: 'EV-\d+'
+          lowercase-branch: false
+          title-template: "[%branch%]"
+          replace-title: false
+          title-prefix-space: true
+          uppercase-title: true
+          body-template: "[Link to %branch%](https://noodoe.atlassian.net/browse/%branch%)"
+          replace-body: false
+          body-prefix-newline-count: 2
+          uppercase-body: true
