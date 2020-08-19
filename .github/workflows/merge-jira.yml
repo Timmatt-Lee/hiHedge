@@ -21,7 +21,7 @@ jobs:
         id: create
         uses: atlassian/gajira-create@master
         with:
-          project: Noodoe EV
+          project: NE
           issuetype: Build
           summary: |
             Build completed for ${{ github.repository }}
