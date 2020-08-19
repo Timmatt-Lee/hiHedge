@@ -1,5 +1,5 @@
 on:
-  push:
+  pull_request:
     branches:
       - master
 
@@ -20,6 +20,13 @@ jobs:
       - name: Create new issue
         id: create
         uses: atlassian/gajira-create@master
+        with:
+          project: Noodoe EV
+          issuetype: Build
+          summary: |
+            Build completed for ${{ github.repository }}
+          description: |
+            Compare branch
 
       - name: Transition issue
         uses: atlassian/gajira-transition@master
