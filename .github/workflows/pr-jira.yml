@@ -1,5 +1,5 @@
 on:
-  create:
+  pull_request:
     branches:
       - master
 
@@ -24,7 +24,7 @@ jobs:
           project: NE
           issuetype: Task
           summary: |
-            [Cloud] ${{ github.ref }}
+            [Cloud] ${{ github.event.pull_request.title }}
 
       - name: Transition issue
         uses: atlassian/gajira-transition@master
