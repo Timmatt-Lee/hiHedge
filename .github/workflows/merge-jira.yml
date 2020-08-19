@@ -24,15 +24,15 @@ jobs:
           project: NE
           issuetype: Task
           summary: |
-            Build completed for ${{ github.repository }}
-          description: |
-            Compare branch
+            [Cloud] Build completed for ${{ github.ref }}
+          components:
+            - Cloud - Noodoe App
 
       - name: Transition issue
         uses: atlassian/gajira-transition@master
         with:
           issue: ${{ steps.create.outputs.issue }}
-          transition: "In progress"
+          transition: Start Progress
 
       - name: Find in commit messages
         uses: atlassian/gajira-find-issue-key@master
