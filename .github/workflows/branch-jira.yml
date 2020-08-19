@@ -25,3 +25,9 @@ jobs:
           issuetype: Task
           summary: |
             [Cloud] ${{ github.ref }}
+
+      - name: Transition issue
+        uses: atlassian/gajira-transition@master
+        with:
+          issue: ${{ steps.create.outputs.issue }}
+          transition: Start Progress
