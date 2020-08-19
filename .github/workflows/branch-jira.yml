@@ -24,7 +24,7 @@ jobs:
           project: NE
           issuetype: Task
           summary: |
-            [Cloud] ${{ github.ref }}
+            ${{ github.ref }}
 
       - name: Transition issue
         uses: atlassian/gajira-transition@master
