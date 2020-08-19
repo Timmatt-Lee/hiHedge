@@ -1,0 +1,27 @@
+on:
+  create:
+    branches:
+      - master
+
+name: Jira
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    name: Jira
+    steps:
+      - name: Login
+        uses: atlassian/gajira-login@master
+        env:
+          JIRA_BASE_URL: ${{ secrets.JIRA_BASE_URL }}
+          JIRA_USER_EMAIL: ${{ secrets.JIRA_USER_EMAIL }}
+          JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+
+      - name: Create new task
+        id: create
+        uses: atlassian/gajira-create@master
+        with:
+          project: NE
+          issuetype: Task
+          summary: |
+            [Cloud] ${{ github.ref }}
