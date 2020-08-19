@@ -37,7 +37,7 @@ jobs:
         uses: tzkhan/pr-update-action@master
         with:
           repo-token: "${{ secrets.GITHUB_TOKEN }}"
-          branch-regex: 'EV-\d+'
+          branch-regex: 'NE-\d+'
           lowercase-branch: false
           title-template: "[%branch%]"
           replace-title: false
