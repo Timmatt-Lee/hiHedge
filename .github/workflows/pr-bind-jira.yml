@@ -55,7 +55,7 @@ jobs:
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           branch-regex: .
-          title-template: '[${{ steps.create.outputs.key }}]' 
+          title-template: '[${{ steps.issue.outputs.key }}]' 
           replace-title: false
           title-prefix-space: true
           uppercase-title: true
