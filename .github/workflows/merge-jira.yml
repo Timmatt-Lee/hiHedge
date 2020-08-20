@@ -15,7 +15,7 @@ jobs:
       - name: Curl test
         run: |
           curl --request POST \
-          --url ${{ secrets.JIRA_BASE_URL }} \
+          --url ${{ secrets.JIRA_BASE_URL }}/rest/api/3/issue \
           --user ${{ secrets.JIRA_USER_EMAIL }}:${{ secrets.JIRA_API_TOKEN }} \
           --header Accept:application/json \
           --header Content-Type:application/json \
