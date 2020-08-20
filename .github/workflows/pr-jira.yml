@@ -10,6 +10,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     name: Create Jira task when pull request creation
+    if: "!contains(github.event.pull_request.title, '[NE-')"
     steps:
       - name: Create Issue
         id: create
