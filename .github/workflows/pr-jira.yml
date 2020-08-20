@@ -67,6 +67,7 @@ jobs:
                 }
               }
             }')
+          echo "$res"
           echo "::set-output name=key::$(printf %s "$res" | jq -r '.key')"
           echo "::set-output name=id::$(printf %s "$res" | jq -r '.id')"
       
