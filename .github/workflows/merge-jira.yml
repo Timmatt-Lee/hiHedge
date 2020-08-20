@@ -19,23 +19,22 @@ jobs:
           --user ${{ secrets.JIRA_USER_EMAIL }}:${{ secrets.JIRA_API_TOKEN }} \
           --header Accept:application/json \
           --header Content-Type:application/json \
-          --data "{
-            fields: {
-              project: {
-                key: 'SEC'
-              },
-              issuetype : {
-                name : Task
-              },
-              priority : {
-                name : Highest
-              },
-              components : [{
-                name : 'Cloud - Noodoe App'
-              }],
-              summary: 'Sample REST API.',
-            ]
-          }"
+          --data '{
+            "fields": {
+                "summary": "Sample REST API.",
+                "project": {
+                  "key": "NE"
+                },
+                "issuetype": {
+                  "name": "Task"
+                },
+                "components": [
+                  {
+                    "name": "Cloud - Noodoe App"
+                  }
+                ]
+              }
+            }'
       # - name: Login
       #   uses: atlassian/gajira-login@master
       #   env:
