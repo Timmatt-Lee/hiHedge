@@ -53,11 +53,9 @@ jobs:
                   "version": 1,
                   "content": [
                     {
-                      {
-                        "type": "blockCard",
-                        "attrs": {
-                          "url": "${{ github.event.pull_request.url }}"
-                        }
+                      "type": "blockCard",
+                      "attrs": {
+                        "url": "${{ github.event.pull_request.url }}"
                       }
                     }
                   ]
