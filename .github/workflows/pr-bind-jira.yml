@@ -43,17 +43,8 @@ jobs:
               }
             }'
 
-      - name: Rename pull request title
-        uses: tzkhan/pr-update-action@master
-        with:
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-          branch-regex: .
-          lowercase-branch: false
-          title-template: '' 
-          replace-title: false
-          title-prefix-space: true
-          uppercase-title: true
-          body-template: '[${{ steps.issue.outputs.key }}](https://noodoe.atlassian.net/browse/${{ steps.issue.outputs.key }})'
-          replace-body: false
-          body-prefix-newline-count: 2
-          uppercase-body: true
+      - name: Comment with jira issue link
+        uses: thollander/actions-comment-pull-request@master
+         with:
+          message: '[${{ steps.issue.outputs.key }}](https://noodoe.atlassian.net/browse/${{ steps.issue.outputs.key }})'
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
