@@ -11,21 +11,35 @@ jobs:
     runs-on: ubuntu-latest
     name: Create Jira task when pull request creation
     steps:
-      - name: Login
-        uses: atlassian/gajira-login@master
-        env:
-          JIRA_BASE_URL: ${{ secrets.JIRA_BASE_URL }}
-          JIRA_USER_EMAIL: ${{ secrets.JIRA_USER_EMAIL }}
-          JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
-
-      - name: Create new task
+      - name: Curl test
         id: create
-        uses: atlassian/gajira-create@master
-        with:
-          project: NE
-          issuetype: Task
-          summary: |
-            [Cloud] ${{ github.ref }}
+        run: |
+          echo "::set-output name=key::$( \
+            curl -s --request POST \
+            --url ${{ secrets.JIRA_BASE_URL }}/rest/api/3/issue \
+            --user ${{ secrets.JIRA_USER_EMAIL }}:${{ secrets.JIRA_API_TOKEN }} \
+            --header Accept:application/json \
+            --header Content-Type:application/json \
+            --data '{
+              "fields": {
+                  "summary": "Sample REST API.",
+                  "project": {
+                    "key": "NE"
+                  },
+                  "issuetype": {
+                    "name": "Task"
+                  },
+                  "components": [
+                    {
+                      "name": "Cloud - Noodoe App"
+                    }
+                  ]
+                }
+              }' \
+            | jq '.key' | sed 's/\"//g')"
+
+      - name: Get key
+        run: echo ${{ steps.create.outputs.key }}
 
       - name: Transition issue
         uses: atlassian/gajira-transition@master
@@ -36,14 +50,14 @@ jobs:
       - name: Rename pull request title
         uses: tzkhan/pr-update-action@master
         with:
-          repo-token: "${{ secrets.GITHUB_TOKEN }}"
-          branch-regex: 'NE-\d+'
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          branch-regex: *
           lowercase-branch: false
-          title-template: "[%branch%]"
+          title-template: ${{ steps.create.outputs.key }}
           replace-title: false
           title-prefix-space: true
           uppercase-title: true
-          body-template: "[Link to %branch%](https://noodoe.atlassian.net/browse/%branch%)"
+          body-template: [${{ steps.create.outputs.key }}](https://noodoe.atlassian.net/browse/%branch%)
           replace-body: false
           body-prefix-newline-count: 2
           uppercase-body: true
