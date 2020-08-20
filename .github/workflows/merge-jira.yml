@@ -4,7 +4,7 @@ on:
     branches:
       - master
 
-name: Move Jira task to resolved when merge
+name: Move Jira issue to resolved when merge
 
 jobs:
   build:

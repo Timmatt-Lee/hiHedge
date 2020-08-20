@@ -1,15 +1,16 @@
 on:
   pull_request:
-    types: [opened]
+    types: [reopened]
     branches:
       - master
 
-name: Create Jira task when pull request creation
+name: Create Jira issue when pull request if none detection
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    name: Create Jira task when pull request creation
+    name: Create Jira issue when pull request if none detection
+    if: "!contains(github.event.pull_request.title, '[NE-')"
     steps:
       - name: Create Issue
         id: create
@@ -53,15 +54,10 @@ jobs:
                   "version": 1,
                   "content": [
                     {
-                      "type": "paragraph",
-                      "content": [
-                        {
-                          "type": "blockCard",
-                          "attrs": {
-                            "url": ${{ github.event.pull_request.url }}
-                          }
-                        }
-                      ]
+                      "type": "blockCard",
+                      "attrs": {
+                        "url": "${{ github.event.pull_request.html_url }}"
+                      }
                     }
                   ]
                 }
@@ -100,7 +96,7 @@ jobs:
           replace-title: false
           title-prefix-space: true
           uppercase-title: true
-          body-template: '[${{ steps.create.outputs.key }}](https://noodoe.atlassian.net/browse/${{ steps.create.outputs.key }})'
+          body-template: '[${{ steps.create.outputs.key }}](${{ secrets.JIRA_BASE_URL }}/browse/${{ steps.create.outputs.key }})'
           replace-body: false
           body-prefix-newline-count: 2
           uppercase-body: true
