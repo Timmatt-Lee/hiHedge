@@ -55,7 +55,7 @@ jobs:
                     {
                       "type": "blockCard",
                       "attrs": {
-                        "url": "${{ github.event.pull_request.url }}"
+                        "url": "${{ github.event.pull_request.html_url }}"
                       }
                     }
                   ]
