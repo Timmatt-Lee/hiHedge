@@ -20,22 +20,24 @@ jobs:
             --header Accept:application/json \
             --header Content-Type:application/json \
             --data '{
+              "transition": {
+                "id": "91"
+              },
               "fields": {
-                  "summary": "${{ github.event.pull_request.title }}",
-                  "project": {
-                    "key": "NE"
-                  },
-                  "issuetype": {
-                    "name": "Task"
-                  },
-                  "components": [
-                    {
-                      "name": "Cloud - Noodoe App"
-                    }
-                  ]
-                }
-              }')
-          echo "$res"
+                "summary": "${{ github.event.pull_request.title }}",
+                "project": {
+                  "key": "NE"
+                },
+                "issuetype": {
+                  "name": "Task"
+                },
+                "components": [
+                  {
+                    "name": "Cloud - Noodoe App"
+                  }
+                ]
+              }
+            }')
           echo "::set-output name=key::$(printf %s "$res" | jq -r '.key')"
           echo "::set-output name=id::$(printf %s "$res" | jq -r '.id')"
 
