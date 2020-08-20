@@ -47,7 +47,24 @@ jobs:
                   {
                     "id": "'"${versionId}"'"
                   }
-                ]
+                ],
+                "description": {
+                  "type": "doc",
+                  "version": 1,
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "blockCard",
+                          "attrs": {
+                            "url": ${{ github.event.pull_request.url }}
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                }
               }
             }')
           echo "::set-output name=key::$(printf %s "$res" | jq -r '.key')"
