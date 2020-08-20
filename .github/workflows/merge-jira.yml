@@ -37,7 +37,7 @@ jobs:
                   ]
                 }
               }' \
-            | jq '.tag_name' | sed 's/\"//g'))"
+            | jq '.tag_name' | sed 's/\"//g')"
 
       - name: Get key
         run: echo ${{ steps.create.outputs.res.key }}
