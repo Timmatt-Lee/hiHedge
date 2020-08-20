@@ -36,8 +36,8 @@ jobs:
                   ]
                 }
               }')
-          echo "::set-output name=key::$($res | jq '.key' | sed 's/\"//g')"
-          echo "::set-output name=id::$($res | jq '.id' | sed 's/\"//g')"
+          echo "::set-output name=key::$res | jq '.key' | sed 's/\"//g'"
+          echo "::set-output name=id::$res | jq '.id' | sed 's/\"//g'"
 
       - name: Get id
         run: echo ${{ steps.create.outputs.id }}
