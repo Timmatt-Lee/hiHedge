@@ -4,12 +4,12 @@ on:
     branches:
       - master
 
-name: Create Jira task when pull request creation
+name: Create Jira issue when pull request if none detection
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    name: Create Jira task when pull request creation
+    name: Create Jira issue when pull request if none detection
     if: "!contains(github.event.pull_request.title, '[NE-')"
     steps:
       - name: Create Issue
@@ -63,7 +63,6 @@ jobs:
                 }
               }
             }')
-          echo "$res"
           echo "::set-output name=key::$(printf %s "$res" | jq -r '.key')"
           echo "::set-output name=id::$(printf %s "$res" | jq -r '.id')"
       

@@ -1,0 +1,59 @@
+on:
+  pull_request:
+    types: [reopened]
+    branches:
+      - master
+
+name: Bind this pull request to existed Jira issue
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    name: ind this pull request to existed Jira issue
+    if: "contains(github.event.pull_request.title, '[NE-')"
+    steps:
+      - name: Extract issue key
+        id: issue
+        run:  echo "::set-output name=key::$(echo '${{ github.event.pull_request.title }}' | sed 's|^\[\([A-Z]\{1,\}-[0-9]\{1,\}\)\].*|\1|')"
+      
+      - name: Update issue
+        run: |
+          res=$(curl -s -X POST \
+            --url ${{ secrets.JIRA_BASE_URL }}/rest/api/3/issue/${{ steps.issue.outputs.key } \
+            --user ${{ secrets.JIRA_USER_EMAIL }}:${{ secrets.JIRA_API_TOKEN }} \
+            --header Accept:application/json \
+            --header Content-Type:application/json \
+            --data '{
+              "transition": {
+                "id": "91"
+              },
+              "fields": {
+                "description": {
+                  "type": "doc",
+                  "version": 1,
+                  "content": [
+                    {
+                      "type": "blockCard",
+                      "attrs": {
+                        "url": "${{ github.event.pull_request.html_url }}"
+                      }
+                    }
+                  ]
+                }
+              }
+            }')
+
+      - name: Rename pull request title
+        uses: tzkhan/pr-update-action@master
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          branch-regex: .
+          lowercase-branch: false
+          title-template: '' 
+          replace-title: false
+          title-prefix-space: true
+          uppercase-title: true
+          body-template: '[${{ steps.issue.outputs.key }}](https://noodoe.atlassian.net/browse/${{ steps.issue.outputs.key }})'
+          replace-body: false
+          body-prefix-newline-count: 2
+          uppercase-body: true
