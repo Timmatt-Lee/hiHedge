@@ -12,38 +12,12 @@ jobs:
     name: Move Jira task to resolved when merge
     # if: ${{ github.event.pull_request.merged }}
     steps:
-      - name: Find issue
-        id: create
-        run: |
-          res=$(curl -s -X POST \
-            --url ${{ secrets.JIRA_BASE_URL }}/rest/api/3/issue \
-            --user ${{ secrets.JIRA_USER_EMAIL }}:${{ secrets.JIRA_API_TOKEN }} \
-            --header Accept:application/json \
-            --header Content-Type:application/json \
-            --data '{
-              "fields": {
-                  "summary": "Sample REST API.",
-                  "project": {
-                    "key": "NE"
-                  },
-                  "issuetype": {
-                    "name": "Task"
-                  },
-                  "components": [
-                    {
-                      "name": "Cloud - Noodoe App"
-                    }
-                  ]
-                }
-              }')
-          echo "::set-output name=key::$(printf %s "$res" | jq -r '.key')"
-          echo "::set-output name=id::$(printf %s "$res" | jq -r '.id')"
-
-      - name: Get id
-        run: echo ${{ steps.create.outputs.id }}
+      - name: Extract issue key
+        id: issue
+        run:  echo "::set-output name=key::$( [[ ${{ github.event.pull_request.title }} =~ '{{([\s\S]+?)}}' ]] )"
 
       - name: Get key
-        run: echo ${{ steps.create.outputs.key }}
+        run: echo ${{ steps.create.issue.key }}
       # - name: Login
       #   uses: atlassian/gajira-login@master
       #   env:
