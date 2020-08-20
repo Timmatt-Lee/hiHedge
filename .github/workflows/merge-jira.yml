@@ -10,6 +10,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     name: Move Jira task to resolved when merge
+    if: ${{ github.event.pull_request.merged }}
     steps:
       - name: Find issue
         id: create
