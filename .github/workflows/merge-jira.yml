@@ -17,7 +17,7 @@ jobs:
         run:  echo "::set-output name=key::$( [[ '${{ github.event.pull_request.title }}' =~ '{{([\s\S]+?)}}' ]] )"
 
       - name: Get key
-        run: echo ${{ steps.create.issue.key }}
+        run: echo ${{ steps.issue.outputs.key }}
       # - name: Login
       #   uses: atlassian/gajira-login@master
       #   env:
