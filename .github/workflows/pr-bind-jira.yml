@@ -18,15 +18,12 @@ jobs:
       
       - name: Update issue
         run: |
-          curl -X POST \
+          curl -X PUT \
             --url ${{ secrets.JIRA_BASE_URL }}/rest/api/3/issue/${{ steps.issue.outputs.key }} \
             --user ${{ secrets.JIRA_USER_EMAIL }}:${{ secrets.JIRA_API_TOKEN }} \
             --header Accept:application/json \
             --header Content-Type:application/json \
             --data '{
-              "transition": {
-                "id": "91"
-              },
               "fields": {
                 "description": {
                   "type": "doc",
@@ -42,9 +39,27 @@ jobs:
                 }
               }
             }'
+          curl -X POST \
+            --url ${{ secrets.JIRA_BASE_URL }}/rest/api/3/issue/${{ steps.issue.outputs.key }}/transitions \
+            --user ${{ secrets.JIRA_USER_EMAIL }}:${{ secrets.JIRA_API_TOKEN }} \
+            --header Accept:application/json \
+            --header Content-Type:application/json \
+            --data '{
+              "transition": {
+                "id": "91"
+              }
+            }'
 
-      - name: Edit pull request body with jira issue link
-        uses: kt3k/update-pr-description@master
+      - name: Edit pull request desc with jira issue link
+        uses: tzkhan/pr-update-action@v1.1.1
         with:
-          pr_body: '[${{ steps.issue.outputs.key }}](https://noodoe.atlassian.net/browse/${{ steps.issue.outputs.key }})'
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          branch-regex: .
+          title-template: '[${{ steps.create.outputs.key }}]' 
+          replace-title: false
+          title-prefix-space: true
+          uppercase-title: true
+          body-template: '[${{ steps.create.outputs.key }}](${{ secrets.JIRA_BASE_URL }}/browse/${{ steps.create.outputs.key }})'
+          replace-body: false
+          body-prefix-newline-count: 2
+          uppercase-body: true

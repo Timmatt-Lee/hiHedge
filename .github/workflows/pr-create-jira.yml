@@ -96,7 +96,7 @@ jobs:
           replace-title: false
           title-prefix-space: true
           uppercase-title: true
-          body-template: '[${{ steps.create.outputs.key }}](https://noodoe.atlassian.net/browse/${{ steps.create.outputs.key }})'
+          body-template: '[${{ steps.create.outputs.key }}](${{ secrets.JIRA_BASE_URL }}/browse/${{ steps.create.outputs.key }})'
           replace-body: false
           body-prefix-newline-count: 2
           uppercase-body: true
