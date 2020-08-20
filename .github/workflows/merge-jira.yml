@@ -37,8 +37,8 @@ jobs:
               }
             }'
 
-        - name: Get key
-          run: echo ${{ steps.create.outputs.CreatedIssue.key }}
+      - name: Get key
+        run: echo ${{ steps.create.outputs.CreatedIssue.key }}
       # - name: Login
       #   uses: atlassian/gajira-login@master
       #   env:
