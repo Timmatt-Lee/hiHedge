@@ -14,7 +14,7 @@ jobs:
     steps:
       - name: Extract issue key
         id: issue
-        run:  echo "::set-output name=key::$( [[ ${{ github.event.pull_request.title }} =~ '{{([\s\S]+?)}}' ]] )"
+        run:  echo "::set-output name=key::$( [[ '${{ github.event.pull_request.title }}' =~ '{{([\s\S]+?)}}' ]] )"
 
       - name: Get key
         run: echo ${{ steps.create.issue.key }}
