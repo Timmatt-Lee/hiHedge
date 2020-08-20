@@ -38,7 +38,9 @@ jobs:
             }'
 
       - name: Get key
-        run: echo ${{ steps.create.outputs.key }}
+        run: |
+          $output = '${{ steps.create.outputs }}' | ConvertFrom-Json
+          echo $($output.key)
       # - name: Login
       #   uses: atlassian/gajira-login@master
       #   env:
