@@ -48,23 +48,33 @@ jobs:
                   {
                     "id": "'"${versionId}"'"
                   }
-                ],
-                "description": {
-                  "type": "doc",
-                  "version": 1,
-                  "content": [
-                    {
-                      "type": "blockCard",
-                      "attrs": {
-                        "url": "${{ github.event.pull_request.html_url }}"
-                      }
-                    }
-                  ]
-                }
+                ]
               }
             }')
           echo "::set-output name=key::$(printf %s "$res" | jq -r '.key')"
           echo "::set-output name=id::$(printf %s "$res" | jq -r '.id')"
+
+      - name: comment pull request link
+        run: |
+          curl -X POST \
+            --url ${{ secrets.JIRA_BASE_URL }}/rest/api/3/issue/${{ steps.create.outputs.key }}/comment \
+            --user ${{ secrets.JIRA_USER_EMAIL }}:${{ secrets.JIRA_API_TOKEN }} \
+            --header Accept:application/json \
+            --header Content-Type:application/json \
+            --data '{
+              "body": {
+                "type": "doc",
+                "version": 1,
+                "content": [
+                  {
+                    "type": "blockCard",
+                    "attrs": {
+                      "url": "${{ github.event.pull_request.html_url }}"
+                    }
+                  }
+                ]
+              }
+            }'
       
       - name: Move issue to active sprint
         run: |
