@@ -13,6 +13,7 @@ jobs:
     name: Move Jira task to resolved when merge
     steps:
       - name: Curl test
+        id: create
         run: |
           curl --request POST \
           --url ${{ secrets.JIRA_BASE_URL }}/rest/api/3/issue \
@@ -35,6 +36,9 @@ jobs:
                 ]
               }
             }'
+
+        - name: Get key
+          run: echo ${{ steps.create.outputs.CreatedIssue.key }}
       # - name: Login
       #   uses: atlassian/gajira-login@master
       #   env:
