@@ -18,7 +18,7 @@ jobs:
       
       - name: Update issue
         run: |
-          curl -s -X POST \
+          curl -X POST \
             --url ${{ secrets.JIRA_BASE_URL }}/rest/api/3/issue/${{ steps.issue.outputs.key }} \
             --user ${{ secrets.JIRA_USER_EMAIL }}:${{ secrets.JIRA_API_TOKEN }} \
             --header Accept:application/json \
@@ -43,8 +43,8 @@ jobs:
               }
             }'
 
-      - name: Comment with jira issue link
-        uses: thollander/actions-comment-pull-request@master
+      - name: Edit pull request body with jira issue link
+        uses: kt3k/update-pr-description@master
         with:
-          message: '[${{ steps.issue.outputs.key }}](https://noodoe.atlassian.net/browse/${{ steps.issue.outputs.key }})'
+          pr_body: '[${{ steps.issue.outputs.key }}](https://noodoe.atlassian.net/browse/${{ steps.issue.outputs.key }})'
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
