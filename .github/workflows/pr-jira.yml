@@ -39,7 +39,6 @@ jobs:
           echo "::set-output name=id::$(printf %s "$res" | jq -r '.id')"
 
       - name: Transition Issue
-        id: create
         run: |
           curl -s -X POST \
             --url ${{ secrets.JIRA_BASE_URL }}/rest/api/3/issue/${{ steps.create.outputs.id }}/transitions \
