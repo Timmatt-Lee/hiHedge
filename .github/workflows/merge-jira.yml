@@ -10,52 +10,21 @@ jobs:
   build:
     runs-on: ubuntu-latest
     name: Move Jira task to resolved when merge
+    if: ${{ github.event.pull_request.merged }}
     steps:
-      - name: Find issue
-        id: create
+      - name: Extract issue key
+        id: issue
+        run:  echo "::set-output name=key::$(echo '${{ github.event.pull_request.title }}' | sed 's|^\[\([A-Z]\{1,\}-[0-9]\{1,\}\)\].*|\1|')"
+
+      - name: Transition Issue
         run: |
-          res=$(curl -s -X POST \
-            --url ${{ secrets.JIRA_BASE_URL }}/rest/api/3/issue \
+          curl -s -X POST \
+            --url ${{ secrets.JIRA_BASE_URL }}/rest/api/3/issue/${{ steps.issue.outputs.key }}/transitions \
             --user ${{ secrets.JIRA_USER_EMAIL }}:${{ secrets.JIRA_API_TOKEN }} \
             --header Accept:application/json \
             --header Content-Type:application/json \
             --data '{
-              "fields": {
-                  "summary": "Sample REST API.",
-                  "project": {
-                    "key": "NE"
-                  },
-                  "issuetype": {
-                    "name": "Task"
-                  },
-                  "components": [
-                    {
-                      "name": "Cloud - Noodoe App"
-                    }
-                  ]
+                "transition": {
+                  "id": "101"
                 }
-              }')
-          echo "::set-output name=key::$(printf %s "$res" | jq -r '.key')"
-          echo "::set-output name=id::$(printf %s "$res" | jq -r '.id')"
-
-      - name: Get id
-        run: echo ${{ steps.create.outputs.id }}
-
-      - name: Get key
-        run: echo ${{ steps.create.outputs.key }}
-      # - name: Login
-      #   uses: atlassian/gajira-login@master
-      #   env:
-      #     JIRA_BASE_URL: ${{ secrets.JIRA_BASE_URL }}
-      #     JIRA_USER_EMAIL: ${{ secrets.JIRA_USER_EMAIL }}
-      #     JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
-      # - name: Find in commit messages
-      #   id: find
-      #   uses: cybervoid/gajira-get-issue@master
-      #   with:
-      #     input-text: ${{ github.head_ref }}
-      # - name: Transition issue
-      #   uses: atlassian/gajira-transition@master
-      #   with:
-      #     issue: ${{ steps.find.outputs.issue }}
-      #     transition: Resolve
+              }'
