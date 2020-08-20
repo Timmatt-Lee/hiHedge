@@ -38,18 +38,18 @@ jobs:
           echo "::set-output name=key::$(printf %s "$res" | jq -r '.key')"
           echo "::set-output name=id::$(printf %s "$res" | jq -r '.id')"
 
-      - name: Login
-        uses: atlassian/gajira-login@master
-        env:
-          JIRA_BASE_URL: ${{ secrets.JIRA_BASE_URL }}
-          JIRA_USER_EMAIL: ${{ secrets.JIRA_USER_EMAIL }}
-          JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
-
-      - name: Transition issue
-        uses: atlassian/gajira-transition@master
-        with:
-          issue: ${{ steps.create.outputs.id }}
-          transition: Start Progress
+      - name: Transition Issue
+        id: create
+        run: |
+          curl -s -X POST \
+            --url ${{ secrets.JIRA_BASE_URL }}/rest/api/3/issue/${{ steps.create.outputs.id }}/transitions \
+            --user ${{ secrets.JIRA_USER_EMAIL }}:${{ secrets.JIRA_API_TOKEN }} \
+            --header Accept:application/json \
+            --header Content-Type:application/json \
+            --data '{
+                "transition": {
+                  "name": "Start Progress"
+                }'
 
       - name: Rename pull request title
         uses: tzkhan/pr-update-action@master
