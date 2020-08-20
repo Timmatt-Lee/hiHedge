@@ -21,7 +21,7 @@ jobs:
             --header Content-Type:application/json \
             --data '{
               "fields": {
-                  "summary": ${{ github.event.pull_request.title }},
+                  "summary": "${{ github.event.pull_request.title }}",
                   "project": {
                     "key": "NE"
                   },
