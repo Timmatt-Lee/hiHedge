@@ -38,6 +38,7 @@ jobs:
             }'
 
       - name: Get key
+        shell: pwsh
         run: |
           $output = '${{ steps.create.outputs }}' | ConvertFrom-Json
           echo $($output.key)
