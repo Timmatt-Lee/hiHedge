@@ -45,6 +45,6 @@ jobs:
 
       - name: Comment with jira issue link
         uses: thollander/actions-comment-pull-request@master
-         with:
+        with:
           message: '[${{ steps.issue.outputs.key }}](https://noodoe.atlassian.net/browse/${{ steps.issue.outputs.key }})'
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
