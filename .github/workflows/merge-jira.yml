@@ -13,11 +13,12 @@ jobs:
     name: Move Jira task to resolved when merge
     steps:
       - name: Curl test
-        run: curl --request POST \
+        run: |
+          curl --request POST \
           --url ${{ secrets.JIRA_BASE_URL }} \
           --user ${{ secrets.JIRA_USER_EMAIL }}:${{ secrets.JIRA_API_TOKEN }} \
-          --header 'Accept: application/json' \
-          --header 'Content-Type: application/json' \
+          --header Accept: application/json \
+          --header Content-Type: application/json \
           --data '{
 
           "fields": {
@@ -62,7 +63,6 @@ jobs:
           }
           ]
           }'
-
       # - name: Login
       #   uses: atlassian/gajira-login@master
       #   env:
