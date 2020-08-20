@@ -1,6 +1,7 @@
 on:
-  pull_request:
-    types: [closed]
+  # pull_request:
+  #   types: [closed]
+  push
     branches:
       - master
 
