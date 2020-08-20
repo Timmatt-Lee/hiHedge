@@ -47,7 +47,7 @@ jobs:
       - name: Rename pull request title
         uses: tzkhan/pr-update-action@master
         with:
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          repo-token: "${{ secrets.GITHUB_TOKEN }}"
           branch-regex: '\*'
           lowercase-branch: false
           title-template: [${{ steps.create.outputs.key }}] 
