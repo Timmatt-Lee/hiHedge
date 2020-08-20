@@ -1,7 +1,6 @@
 on:
-  # pull_request:
-  #   types: [closed]
-  push:
+  pull_request:
+    types: [closed]
     branches:
       - master
 
@@ -12,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     name: Move Jira task to resolved when merge
     steps:
-      - name: Curl test
+      - name: Find issue
         id: create
         run: |
           res=$(curl -s -X POST \
@@ -38,7 +37,6 @@ jobs:
               }')
           echo "::set-output name=key::$(printf %s "$res" | jq -r '.key')"
           echo "::set-output name=id::$(printf %s "$res" | jq -r '.id')"
-
 
       - name: Get id
         run: echo ${{ steps.create.outputs.id }}
