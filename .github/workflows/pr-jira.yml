@@ -47,14 +47,14 @@ jobs:
       - name: Rename pull request title
         uses: tzkhan/pr-update-action@master
         with:
-          repo-token: "${{ secrets.GITHUB_TOKEN }}"
-          branch-regex: '\*'
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          branch-regex: \*
           lowercase-branch: false
-          title-template: [${{ steps.create.outputs.key }}] 
+          title-template: '[${{ steps.create.outputs.key }}]' 
           replace-title: false
           title-prefix-space: true
           uppercase-title: true
-          body-template: [${{ steps.create.outputs.key }}](https://noodoe.atlassian.net/browse/${{ steps.create.outputs.key }})
+          body-template: '[${{ steps.create.outputs.key }}](https://noodoe.atlassian.net/browse/${{ steps.create.outputs.key }})'
           replace-body: false
           body-prefix-newline-count: 2
           uppercase-body: true
