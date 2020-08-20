@@ -16,8 +16,19 @@ jobs:
         id: issue
         run:  echo "::set-output name=key::$(echo '${{ github.event.pull_request.title }}' | sed 's|^\[\([A-Z]\{1,\}-[0-9]\{1,\}\)\].*|\1|')"
 
-      - name: Get key
-        run: echo ${{ steps.issue.outputs.key }}
+      - name: Transition Issue
+        run: |
+          curl -s -X POST \
+            --url ${{ secrets.JIRA_BASE_URL }}/rest/api/3/issue/${{ steps.issue.outputs.key }}/transitions \
+            --user ${{ secrets.JIRA_USER_EMAIL }}:${{ secrets.JIRA_API_TOKEN }} \
+            --header Accept:application/json \
+            --header Content-Type:application/json \
+            --data '{
+                "transition": {
+                  "id": "101"
+                }
+              }'
+
       # - name: Login
       #   uses: atlassian/gajira-login@master
       #   env:
