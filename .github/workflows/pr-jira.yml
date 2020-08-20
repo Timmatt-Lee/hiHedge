@@ -48,8 +48,9 @@ jobs:
             --header Content-Type:application/json \
             --data '{
                 "transition": {
-                  "name": "Start Progress"
-                }'
+                  "id": "91"
+                }
+              }'
 
       - name: Rename pull request title
         uses: tzkhan/pr-update-action@master
