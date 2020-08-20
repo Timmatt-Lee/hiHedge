@@ -14,6 +14,13 @@ jobs:
       - name: Create Issue
         id: create
         run: |
+          versions=$(curl -X GET \
+            --url ${{ secrets.JIRA_BASE_URL }}/rest/api/3/project/NE/versions \
+            --user ${{ secrets.JIRA_USER_EMAIL }}:${{ secrets.JIRA_API_TOKEN }} \
+            --header Accept:application/json)
+
+          versionId=$(printf '%s' "$versions" | jq -r 'map(select(.name | startswith("Noodoe App - Cloud")))[0].id')
+
           res=$(curl -s -X POST \
             --url ${{ secrets.JIRA_BASE_URL }}/rest/api/3/issue \
             --user ${{ secrets.JIRA_USER_EMAIL }}:${{ secrets.JIRA_API_TOKEN }} \
@@ -35,11 +42,36 @@ jobs:
                   {
                     "name": "Cloud - Noodoe App"
                   }
+                ],
+                "fixVersions": [
+                  {
+                    "id": "'"${versionId}"'"
+                  }
                 ]
               }
             }')
           echo "::set-output name=key::$(printf %s "$res" | jq -r '.key')"
           echo "::set-output name=id::$(printf %s "$res" | jq -r '.id')"
+      
+      - name: Move issue to active sprint
+        run: |
+          res=$(curl -X GET \
+            --url "${{ secrets.JIRA_BASE_URL }}/rest/agile/1.0/board/30/sprint?state=active" \
+            --user ${{ secrets.JIRA_USER_EMAIL }}:${{ secrets.JIRA_API_TOKEN }} \
+            --header Accept:application/json)
+
+          sprintId=$(printf %s "$res" | jq ".values[0].id")
+
+          curl -X POST \
+            --url "${{ secrets.JIRA_BASE_URL }}/rest/agile/1.0/sprint/${sprintId}/issue" \
+            --user ${{ secrets.JIRA_USER_EMAIL }}:${{ secrets.JIRA_API_TOKEN }} \
+            --header Accept:application/json \
+            --header Content-Type:application/json \
+            --data '{
+              "issues": [
+                "${{ steps.create.outputs.key }}"
+              ]
+            }'
 
       - name: Rename pull request title
         uses: tzkhan/pr-update-action@master
