@@ -19,7 +19,7 @@ jobs:
           --user ${{ secrets.JIRA_USER_EMAIL }}:${{ secrets.JIRA_API_TOKEN }} \
           --header Accept:application/json \
           --header Content-Type:application/json \
-          --data {
+          --data "{
             fields: {
               project: {
                 key: 'SEC'
@@ -35,7 +35,7 @@ jobs:
               }],
               summary: 'Sample REST API.',
             ]
-          }
+          }"
       # - name: Login
       #   uses: atlassian/gajira-login@master
       #   env:
