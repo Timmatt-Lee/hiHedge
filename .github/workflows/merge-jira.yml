@@ -16,7 +16,7 @@ jobs:
         id: create
         run: |
           echo "::set-output name=res::$( \
-            curl --request POST \
+            curl -s --request POST \
             --url ${{ secrets.JIRA_BASE_URL }}/rest/api/3/issue \
             --user ${{ secrets.JIRA_USER_EMAIL }}:${{ secrets.JIRA_API_TOKEN }} \
             --header Accept:application/json \
@@ -37,7 +37,7 @@ jobs:
                   ]
                 }
               }' \
-            )"
+            | jq '.tag_name' | sed 's/\"//g'))"
 
       - name: Get key
         run: echo ${{ steps.create.outputs.res.key }}
