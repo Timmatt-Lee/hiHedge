@@ -98,13 +98,6 @@ jobs:
       
       - name: Move issue to active sprint
         run: |
-          boards=$(curl --request GET \
-          --url ${{ secrets.JIRA_BASE_URL }}/rest/agile/1.0/board \
-          --user ${{ secrets.JIRA_USER_EMAIL }}:${{ secrets.JIRA_API_TOKEN }} \
-          --header 'Accept: application/json')
-
-          boardId=$(printf '%s' "$boards" | jq -r '.value | map(select(.name | startswith("NE board")))[0].id')
-
           res=$(curl -X GET \
             --url "${{ secrets.JIRA_BASE_URL }}/rest/agile/1.0/board/${{ secrets.JIRA_BOARD_ID }}/sprint?state=active" \
             --user ${{ secrets.JIRA_USER_EMAIL }}:${{ secrets.JIRA_API_TOKEN }} \
