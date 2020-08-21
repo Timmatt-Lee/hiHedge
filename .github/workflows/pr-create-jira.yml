@@ -10,12 +10,12 @@ jobs:
   build:
     runs-on: ubuntu-latest
     name: Create Jira issue when pull request if none detection
-    if: "!startsWith(github.event.pull_request.title, '[secrets.JIRA_PROJECT_NAME -')"
+    if: "!startsWith(github.event.pull_request.title, format('[{0}-', secrets.JIRA_PROJECT_NAME))"
     steps:
       - name: Create Issue
         id: create
         run: |
-          versions=$(curl -X GET \
+          versions=$(curl -s -X GET \
             --url ${{ secrets.JIRA_BASE_URL }}/rest/api/3/project/${{ secrets.JIRA_PROJECT_NAME }}/versions \
             --user ${{ secrets.JIRA_USER_EMAIL }}:${{ secrets.JIRA_API_TOKEN }} \
             --header Accept:application/json)
@@ -55,7 +55,7 @@ jobs:
       
       - name: Transit the issue
         run: |
-          transitions=$(curl -X GET \
+          transitions=$(curl -s -X GET \
             --url ${{ secrets.JIRA_BASE_URL }}/rest/api/3/issue/${{ steps.create.outputs.key }}/transitions \
             --user ${{ secrets.JIRA_USER_EMAIL }}:${{ secrets.JIRA_API_TOKEN }} \
             --header Accept:application/json)
@@ -98,7 +98,7 @@ jobs:
       
       - name: Move issue to active sprint
         run: |
-          res=$(curl -X GET \
+          res=$(curl -s -X GET \
             --url "${{ secrets.JIRA_BASE_URL }}/rest/agile/1.0/board/${{ secrets.JIRA_BOARD_ID }}/sprint?state=active" \
             --user ${{ secrets.JIRA_USER_EMAIL }}:${{ secrets.JIRA_API_TOKEN }} \
             --header Accept:application/json)

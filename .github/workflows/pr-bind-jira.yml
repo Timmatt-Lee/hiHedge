@@ -10,7 +10,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     name: Bind this pull request to existed Jira issue
-    if: startsWith(github.event.pull_request.title, '[secrets.JIRA_PROJECT_NAME -')
+    if: "startsWith(github.event.pull_request.title, format('[{0}-', secrets.JIRA_PROJECT_NAME))"
     steps:
       - name: Extract issue key
         id: issue
@@ -40,7 +40,7 @@ jobs:
               }
             }'
 
-          transitions=$(curl -X GET \
+          transitions=$(curl -s -X GET \
             --url ${{ secrets.JIRA_BASE_URL }}/rest/api/3/issue/${{ steps.issue.outputs.key }}/transitions \
             --user ${{ secrets.JIRA_USER_EMAIL }}:${{ secrets.JIRA_API_TOKEN }} \
             --header Accept:application/json)
