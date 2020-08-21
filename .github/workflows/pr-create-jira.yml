@@ -60,7 +60,7 @@ jobs:
             --user ${{ secrets.JIRA_USER_EMAIL }}:${{ secrets.JIRA_API_TOKEN }} \
             --header Accept:application/json)
 
-          transitionId=$(printf '%s' "$transitions" | jq -r '.transitions | \
+          transitionId=$(printf '%s' "$transitions" | jq -r '.transitions |
             map(select(.name | startswith("${{ secrets.JIRA_PR_TRANSITION_NAME }}")))[0].id')
 
           curl -X POST \
