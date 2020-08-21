@@ -10,7 +10,8 @@ jobs:
   build:
     runs-on: ubuntu-latest
     name: Create Jira issue when pull request if none detection
-    if: "!startsWith(github.event.pull_request.title, format('[{0}-', secrets.JIRA_PROJECT_NAME))"
+    # DEV: unsupported regex or secrets injection
+    if: "!startsWith(github.event.pull_request.title, '[')"
     steps:
       - name: Create Issue
         id: create
