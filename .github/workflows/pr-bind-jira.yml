@@ -15,7 +15,7 @@ jobs:
       - name: Extract issue key
         id: issue
         run: |
-          echo "::set-output name=key::$(echo '${{ github.event.pull_request.title }}' |\
+          echo "::set-output name=key::$(echo '${{ github.event.pull_request.title }}' |
             sed 's|^\[\([A-Z]\{1,\}-[0-9]\{1,\}\)\].*|\1|')"
       
       - name: Update issue and comment pull request link
