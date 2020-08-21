@@ -10,7 +10,8 @@ jobs:
   build:
     runs-on: ubuntu-latest
     name: Bind this pull request to existed Jira issue
-    if: startsWith(github.event.pull_request.title, '[secrets.JIRA_PROJECT_NAME -')
+    # DEV: unsupported regex or secrets injection
+    if: "startsWith(github.event.pull_request.title, '[')"
     steps:
       - name: Extract issue key
         id: issue
@@ -40,12 +41,12 @@ jobs:
               }
             }'
 
-          transitions=$(curl -X GET \
+          transitions=$(curl -s -X GET \
             --url ${{ secrets.JIRA_BASE_URL }}/rest/api/3/issue/${{ steps.issue.outputs.key }}/transitions \
             --user ${{ secrets.JIRA_USER_EMAIL }}:${{ secrets.JIRA_API_TOKEN }} \
             --header Accept:application/json)
 
-          transitionId=$(printf '%s' "$transitions" | jq -r '.transitions | \
+          transitionId=$(printf '%s' "$transitions" | jq -r '.transitions |
             map(select(.name | startswith("${{ secrets.JIRA_PR_TRANSITION_NAME }}")))[0].id')
 
           curl -X POST \
@@ -68,8 +69,7 @@ jobs:
           replace-title: false
           title-prefix-space: true
           uppercase-title: true
-          body-template: '[${{ steps.issue.outputs.key }}]
-            (${{ secrets.JIRA_BASE_URL }}/browse/${{ steps.issue.outputs.key }})'
+          body-template: '[${{ steps.issue.outputs.key }}](${{ secrets.JIRA_BASE_URL }}/browse/${{ steps.issue.outputs.key }})'
           replace-body: false
           body-prefix-newline-count: 2
           uppercase-body: true

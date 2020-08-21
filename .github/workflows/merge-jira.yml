@@ -10,22 +10,22 @@ jobs:
   build:
     runs-on: ubuntu-latest
     name: Move Jira task to resolved when merge
-    if: ${{ github.event.pull_request.merged }}
+    if: github.event.pull_request.merged
     steps:
       - name: Extract issue key
         id: issue
         run: |
-          echo "::set-output name=key::$(echo '${{ github.event.pull_request.title }}' |\
+          echo "::set-output name=key::$(echo '${{ github.event.pull_request.title }}' |
             sed 's|^\[\([A-Z]\{1,\}-[0-9]\{1,\}\)\].*|\1|')"
 
       - name: Transition Issue
         run: |
-          transitions=$(curl -X GET \
+          transitions=$(curl -s -X GET \
             --url ${{ secrets.JIRA_BASE_URL }}/rest/api/3/issue/${{ steps.issue.outputs.key }}/transitions \
             --user ${{ secrets.JIRA_USER_EMAIL }}:${{ secrets.JIRA_API_TOKEN }} \
             --header Accept:application/json)
 
-          transitionId=$(printf '%s' "$transitions" | jq -r '.transitions | \
+          transitionId=$(printf '%s' "$transitions" | jq -r '.transitions |
             map(select(.name | startswith("${{ secrets.JIRA_MERGE_TRANSITION_NAME }}")))[0].id')
 
           curl -s -X POST \
