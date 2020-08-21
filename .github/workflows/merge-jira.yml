@@ -28,8 +28,6 @@ jobs:
           transitionId=$(printf '%s' "$transitions" | jq -r '.transitions |
             map(select(.name | startswith("${{ secrets.JIRA_MERGE_TRANSITION_NAME }}")))[0].id')
 
-          echo "$transitionId"
-
           curl -s -X POST \
             --url ${{ secrets.JIRA_BASE_URL }}/rest/api/3/issue/${{ steps.issue.outputs.key }}/transitions \
             --user ${{ secrets.JIRA_USER_EMAIL }}:${{ secrets.JIRA_API_TOKEN }} \
