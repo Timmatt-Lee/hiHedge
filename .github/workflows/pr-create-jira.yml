@@ -65,7 +65,7 @@ jobs:
             map(select(.name | startswith("${{ secrets.JIRA_PR_TRANSITION_NAME }}")))[0].id')
 
           curl -X POST \
-            --url ${{ secrets.JIRA_BASE_URL }}/rest/api/3/issue/${{ steps.issue.outputs.key }}/transitions \
+            --url ${{ secrets.JIRA_BASE_URL }}/rest/api/3/issue/${{ steps.create.outputs.key }}/transitions \
             --user ${{ secrets.JIRA_USER_EMAIL }}:${{ secrets.JIRA_API_TOKEN }} \
             --header Accept:application/json \
             --header Content-Type:application/json \
