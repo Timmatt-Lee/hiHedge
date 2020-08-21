@@ -10,7 +10,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     name: Create Jira issue when pull request if none detection
-    if: !startsWith(github.event.pull_request.title, '[secrets.JIRA_PROJECT_NAME -')
+    if: "!startsWith(github.event.pull_request.title, '[secrets.JIRA_PROJECT_NAME -')"
     steps:
       - name: Create Issue
         id: create
