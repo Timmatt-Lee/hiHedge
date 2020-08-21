@@ -69,8 +69,7 @@ jobs:
           replace-title: false
           title-prefix-space: true
           uppercase-title: true
-          body-template: '[${{ steps.issue.outputs.key }}]
-            (${{ secrets.JIRA_BASE_URL }}/browse/${{ steps.issue.outputs.key }})'
+          body-template: '[${{ steps.issue.outputs.key }}](${{ secrets.JIRA_BASE_URL }}/browse/${{ steps.issue.outputs.key }})'
           replace-body: false
           body-prefix-newline-count: 2
           uppercase-body: true
