@@ -18,6 +18,14 @@ jobs:
 
       - name: Transition Issue
         run: |
+          transitions=$(curl -X GET \
+            --url ${{ secrets.JIRA_BASE_URL }}/rest/api/3/issue/${{ steps.issue.outputs.key }}/transitions \
+            --user ${{ secrets.JIRA_USER_EMAIL }}:${{ secrets.JIRA_API_TOKEN }} \
+            --header Accept:application/json)
+
+          transitionId=$(printf '%s' "$transitions" | jq -r '.transitions | \
+            map(select(.name | startswith("${{ secrets.JIRA_MERGE_TRANSITION_NAME }}")))[0].id')
+
           curl -s -X POST \
             --url ${{ secrets.JIRA_BASE_URL }}/rest/api/3/issue/${{ steps.issue.outputs.key }}/transitions \
             --user ${{ secrets.JIRA_USER_EMAIL }}:${{ secrets.JIRA_API_TOKEN }} \
@@ -25,6 +33,6 @@ jobs:
             --header Content-Type:application/json \
             --data '{
                 "transition": {
-                  "id": "101"
+                  "id": "'"${transitionId}"'"
                 }
               }'

@@ -10,17 +10,18 @@ jobs:
   build:
     runs-on: ubuntu-latest
     name: Create Jira issue when pull request if none detection
-    if: "!contains(github.event.pull_request.title, '[NE-')"
+    if: "!contains(github.event.pull_request.title, '[${{ secrets.JIRA_PROJECT_NAME }}-')"
     steps:
       - name: Create Issue
         id: create
         run: |
           versions=$(curl -X GET \
-            --url ${{ secrets.JIRA_BASE_URL }}/rest/api/3/project/NE/versions \
+            --url ${{ secrets.JIRA_BASE_URL }}/rest/api/3/project/${{ secrets.JIRA_PROJECT_NAME }}/versions \
             --user ${{ secrets.JIRA_USER_EMAIL }}:${{ secrets.JIRA_API_TOKEN }} \
             --header Accept:application/json)
 
-          versionId=$(printf '%s' "$versions" | jq -r 'map(select(.name | startswith("Noodoe App - Cloud")))[0].id')
+          versionId=$(printf '%s' "$versions" | jq -r \
+            'map(select(.name | startswith("${{ secrets.JIRA_VERSION_PREFIX }}")))[0].id')
 
           res=$(curl -s -X POST \
             --url ${{ secrets.JIRA_BASE_URL }}/rest/api/3/issue \
@@ -28,20 +29,17 @@ jobs:
             --header Accept:application/json \
             --header Content-Type:application/json \
             --data '{
-              "transition": {
-                "id": "91"
-              },
               "fields": {
                 "summary": "${{ github.event.pull_request.title }}",
                 "project": {
-                  "key": "NE"
+                  "key": "${{ secrets.JIRA_PROJECT_NAME }}"
                 },
                 "issuetype": {
                   "name": "Task"
                 },
                 "components": [
                   {
-                    "name": "Cloud - Noodoe App"
+                    "name": "${{ secrets.JIRA_COMPONENT_NAME }}"
                   }
                 ],
                 "fixVersions": [
@@ -51,8 +49,30 @@ jobs:
                 ]
               }
             }')
+
           echo "::set-output name=key::$(printf %s "$res" | jq -r '.key')"
           echo "::set-output name=id::$(printf %s "$res" | jq -r '.id')"
+      
+      - name: Transit the issue
+        run: |
+          transitions=$(curl -X GET \
+            --url ${{ secrets.JIRA_BASE_URL }}/rest/api/3/issue/${{ steps.create.outputs.key }}/transitions \
+            --user ${{ secrets.JIRA_USER_EMAIL }}:${{ secrets.JIRA_API_TOKEN }} \
+            --header Accept:application/json)
+
+          transitionId=$(printf '%s' "$transitions" | jq -r '.transitions | \
+            map(select(.name | startswith("${{ secrets.JIRA_PR_TRANSITION_NAME }}")))[0].id')
+
+          curl -X POST \
+            --url ${{ secrets.JIRA_BASE_URL }}/rest/api/3/issue/${{ steps.issue.outputs.key }}/transitions \
+            --user ${{ secrets.JIRA_USER_EMAIL }}:${{ secrets.JIRA_API_TOKEN }} \
+            --header Accept:application/json \
+            --header Content-Type:application/json \
+            --data '{
+              "transition": {
+                "id": "'"${transitionId}"'"
+              }
+            }'
 
       - name: comment pull request link
         run: |
@@ -78,8 +98,15 @@ jobs:
       
       - name: Move issue to active sprint
         run: |
+          boards=$(curl --request GET \
+          --url ${{ secrets.JIRA_BASE_URL }}/rest/agile/1.0/board \
+          --user ${{ secrets.JIRA_USER_EMAIL }}:${{ secrets.JIRA_API_TOKEN }} \
+          --header 'Accept: application/json')
+
+          boardId=$(printf '%s' "$boards" | jq -r '.value | map(select(.name | startswith("NE board")))[0].id')
+
           res=$(curl -X GET \
-            --url "${{ secrets.JIRA_BASE_URL }}/rest/agile/1.0/board/30/sprint?state=active" \
+            --url "${{ secrets.JIRA_BASE_URL }}/rest/agile/1.0/board/${{ secrets.JIRA_BOARD_ID }}/sprint?state=active" \
             --user ${{ secrets.JIRA_USER_EMAIL }}:${{ secrets.JIRA_API_TOKEN }} \
             --header Accept:application/json)
 
