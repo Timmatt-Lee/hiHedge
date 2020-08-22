@@ -20,7 +20,7 @@ jobs:
         githubToken: ${{ secrets.GITHUB_TOKEN }}
         project: ${{ secrets.JIRA_PROJECT_NAME }}
         transition: ${{ secrets.JIRA_PR_TRANSITION_NAME }}
-        type: ${{ secrets.JIRA_ISSUE_TYPE }}                # optional, but required if you want to create issue
-        component: ${{ secrets.JIRA_COMPONENT_NAME }}       # optional, created issue property
-        version: ${{ secrets.JIRA_VERSION_PREFIX }}         # optional, created issue property
-        board: ${{ secrets.JIRA_BOARD_ID }}                 # optional, sprint detection for created issue
+        type: ${{ secrets.JIRA_ISSUE_TYPE }}
+        component: ${{ secrets.JIRA_COMPONENT_NAME }}
+        version: ${{ secrets.JIRA_VERSION_PREFIX }}
+        board: ${{ secrets.JIRA_BOARD_ID }}
